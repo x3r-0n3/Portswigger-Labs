@@ -1,4 +1,4 @@
-# 🐞 Reflected XSS — Enhanced & Real-World Complete Notes
+# Lab-01 🐞 Reflected XSS — Enhanced & Real-World Complete Notes
 
 ---
 
@@ -449,3 +449,367 @@ Find input
 → Escalate impact  
 
 ---
+
+# Lab-02 🐞 Stored XSS — Enhanced & Real-World Complete Notes
+
+---
+
+## 🔹 Overview
+
+Stored Cross-Site Scripting (Stored XSS), also called Persistent XSS or Second-Order XSS, happens when:
+
+- User input is submitted  
+- The application stores it in the database  
+- Later, it is displayed in a page  
+- The browser executes it as JavaScript  
+
+Unlike Reflected XSS:
+
+- The payload is saved in the database  
+- It affects every visitor automatically  
+- It often impacts logged-in users  
+- It can compromise administrators  
+
+Stored XSS is generally more dangerous because exploitation does not require tricking a victim into clicking a link.
+
+---
+
+## 🔹 What Is This Topic?
+
+Stored XSS is a **persistent client-side code execution vulnerability** caused by improper output encoding of stored user input.
+
+### Flow
+
+1️⃣ User submits input (comment, profile field, ticket, etc.)  
+2️⃣ Server stores it in database  
+3️⃣ Application retrieves it later  
+4️⃣ Browser renders it as HTML or JavaScript  
+5️⃣ Malicious script executes  
+
+> Storage + Unsafe Rendering = Persistent Execution
+
+### Common Storage Locations
+
+- Comments  
+- Reviews  
+- Profile fields  
+- Support tickets  
+- Forum posts  
+- Chat messages  
+- Feedback forms  
+- Logs  
+
+---
+
+## 🔹 Lab Walkthrough (Simple & Clear)
+
+1️⃣ Open the lab  
+2️⃣ Locate the blog comment section  
+3️⃣ Submit payload:
+
+`<script>alert(1)</script>`
+
+4️⃣ Comment is stored in the database  
+
+5️⃣ Reload the blog post  
+
+6️⃣ Stored payload appears in response:
+
+`<p><script>alert(1)</script></p>`
+
+7️⃣ Browser executes script  
+
+→ ✅ Lab solved  
+
+Real-world cases are often more complex and role-dependent.
+
+---
+
+## 🔹 Evidence / Screenshot (SS)
+
+![Stored XSS Reflected from Database](../images/stored-xss-reflection.png)
+
+---
+
+# 🌍 Real-World Scenarios (COMPLETE — Context + Payload + Why)
+
+---
+
+## 🟢 1️⃣ Stored in HTML Body (Most Common)
+
+Example:
+
+`<p>USER_COMMENT</p>`
+
+Payload:
+
+`<script>alert(1)</script>`
+
+**Why it works:**  
+Browser parses stored content as executable HTML.
+
+Common in:
+
+- Blogs  
+- Reviews  
+- Forums  
+
+---
+
+## 🟢 2️⃣ Stored in HTML Attribute
+
+Example:
+
+`<img alt="USER_INPUT">`
+
+Payload:
+
+`" onerror=alert(1) "`
+
+Breaks attribute → injects event handler.
+
+Common in:
+
+- Profile pictures  
+- Image captions  
+- Tooltips  
+
+---
+
+## 🟢 3️⃣ Stored in JavaScript String
+
+Example:
+
+`var comment = "USER_INPUT";`
+
+Payload:
+
+`";alert(1);//`
+
+Breaks JS string → executes JavaScript.
+
+Common in:
+
+- Dashboards  
+- Notifications  
+- History logs  
+
+---
+
+## 🟢 4️⃣ Stored in Admin Panel Only
+
+User submits payload.  
+Regular users don’t see it.  
+Admin dashboard loads stored content.  
+
+Admin gets XSS.
+
+🔥 High-impact real-world scenario.
+
+Common in:
+
+- Support ticket systems  
+- Contact forms  
+- Abuse reports  
+- Bug report portals  
+
+---
+
+## 🟢 5️⃣ Stored in Logs / Audit Pages
+
+User input stored in logs.  
+Later viewed by internal staff.  
+
+Payload executes in internal panel.
+
+Often overlooked.
+
+---
+
+## 🟢 6️⃣ Stored in User Profile Fields
+
+Fields like:
+
+- Display name  
+- Bio  
+- Location  
+- Status  
+
+Payload:
+
+`<script>alert(document.cookie)</script>`
+
+Every profile visitor is affected.
+
+---
+
+## 🟢 7️⃣ Stored via File Upload (Filename XSS)
+
+Upload file named:
+
+`"><script>alert(1)</script>.jpg`
+
+If filename is displayed without encoding → Stored XSS.
+
+Common in:
+
+- Document managers  
+- HR portals  
+- Support systems  
+
+---
+
+## 🟢 8️⃣ Stored via HTTP Headers
+
+Example: `User-Agent`
+
+`<script>alert(1)</script>`
+
+If admin log viewer prints headers → XSS.
+
+Internal compromise vector.
+
+---
+
+## 🟢 9️⃣ Stored via Third-Party Data
+
+Examples:
+
+- Embedded tweets  
+- Email previews  
+- RSS feeds  
+- External APIs  
+
+If not sanitized → Persistent XSS.
+
+---
+
+# 🎯 High-Value Targets (Bug Bounty Gold)
+
+Always test:
+
+- Comment systems  
+- Contact forms  
+- Support tickets  
+- Profile settings  
+- Review sections  
+- Feedback pages  
+- Admin dashboards  
+- Log viewers  
+- Moderation panels  
+
+---
+
+# 🔗 Multi-Chain Real Attacks
+
+---
+
+## 🔥 XSS → Session Theft
+
+Steal cookies (if not HttpOnly).
+
+---
+
+## 🔥 XSS → Token Exfiltration
+
+Steal:
+
+- JWT tokens  
+- CSRF tokens  
+- LocalStorage tokens  
+
+---
+
+## 🔥 XSS → Account Takeover
+
+Inject JS to:
+
+- Change email  
+- Change password  
+- Enable MFA  
+
+---
+
+## 🔥 XSS → CSRF Bypass
+
+Use JavaScript to send authenticated POST requests.
+
+---
+
+## 🔥 XSS → Admin Compromise
+
+Plant payload.  
+Admin loads page.  
+Full application compromise.
+
+---
+
+## 🔥 XSS → Data Exfiltration
+
+Read DOM:
+
+- Personal data  
+- Billing details  
+- Messages  
+
+---
+
+## 🔥 XSS → Worm-Like Spread
+
+Payload auto-posts itself into new comments.  
+Spreads between users.
+
+---
+
+# 🛡️ Remediation (Developer Fix)
+
+- Escape output based on context  
+- Encode HTML, attributes, and JavaScript separately  
+- Avoid `innerHTML`  
+- Use `textContent`  
+- Use templating engines with auto-escaping  
+- Implement CSP  
+- Validate input  
+- Avoid string concatenation in JS  
+- Set HttpOnly cookies  
+
+---
+
+# 💡 Extra Notes / Pro Hunter Mindset
+
+Storage ≠ vulnerability  
+Execution = vulnerability  
+
+Always ask:
+
+- Where is my input stored?  
+- Where is it displayed?  
+- In what context?  
+- Does admin see this?  
+- Is it rendered inside JS?  
+
+Pro techniques:
+
+- Use unique markers  
+- Test multiple roles  
+- Check admin panels  
+- Inspect logs  
+- Search for hidden reflections  
+- Trigger background workflows  
+
+---
+
+# 🧠 Ultimate Mental Model
+
+Find input  
+→ Confirm storage  
+→ Locate every display location  
+→ Identify context  
+→ Break context  
+→ Execute payload  
+→ Escalate impact  
+
+Stored XSS = Persistent  
+Reflected XSS = Immediate  
+
+Persistent = More dangerous
