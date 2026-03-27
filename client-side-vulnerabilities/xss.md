@@ -1359,7 +1359,7 @@ In this lab:
 
 Key idea:
 
-→ **The browser becomes the vulnerable component, not the server**
+The browser becomes the vulnerable component, not the server
 
 ---
 
@@ -1368,9 +1368,9 @@ Key idea:
 DOM XSS follows this flow:
 
 User input  
-→ JavaScript reads input  
-→ Unsafe DOM insertion  
-→ Execution  
+JavaScript reads input  
+Unsafe DOM insertion  
+Execution  
 
 Critical concept:
 
@@ -1401,7 +1401,7 @@ Application:
 - Selecting a store updates stock dynamically  
 - No visible user input in URL  
 
-→ Looks safe at first glance  
+ Looks safe at first glance  
 
 ---
 
