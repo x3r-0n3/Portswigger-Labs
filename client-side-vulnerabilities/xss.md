@@ -1339,7 +1339,7 @@ DOM XSS
 
 ---
 
-# Lab-4 🐞 DOM-Based XSS via document.write + location.search in <select> — Enhanced Write-Up
+# Lab-4 🐞 DOM-Based XSS via document.write + location.search in <select> tag
 
 ---
 
