@@ -2102,53 +2102,14 @@ fetch("/change-password",{method:"POST"})
 
 ## 🧪 Methodology
 
----
-
-### Step 1
-
-Insert test string  
-
----
-
-### Step 2
-
-Find reflection in DOM  
-
----
-
-### Step 3
-
-Identify context  
-
----
-
-### Step 4
-
-Identify source (location.search)  
-
----
-
-### Step 5
-
-Identify sink (innerHTML)  
-
----
-
-### Step 6
-
-Test script payload (fails)  
-
----
-
-### Step 7
-
-Use event-based payload  
-
----
-
-### Step 8
-
-Confirm execution  
+- Insert test string  
+- Find reflection in DOM  
+- Identify context  
+- Identify source (location.search)
+- Identify sink (innerHTML)  
+- Test script payload (fails)  
+- Use event-based payload  
+- Confirm execution  
 
 ---
 
