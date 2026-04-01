@@ -3819,3 +3819,291 @@ Input
 → impact  
 
 ---
+
+# Lab - 10 🐞 Stored DOM XSS (innerHTML + Weak replace Filter) — Final Enhanced Write-Up
+
+---
+
+## 🔹 Overview
+
+Stored DOM XSS happens when:
+
+- User input is submitted  
+- Server stores it in database  
+- Page later loads stored data  
+- JavaScript inserts it into DOM  
+- Browser parses and executes it  
+
+---
+
+## 🔹 What Is This Topic?
+
+This lab demonstrates:
+
+Unsafe DOM insertion using innerHTML with weak filtering.
+
+Pattern:
+
+element.innerHTML = comment.author  
+
+Filter used:
+```
+input.replace("<", "&lt;")  
+```
+---
+
+## 🔹 Lab Walkthrough
+
+---
+
+### Step 1 — Open the Lab
+
+Go to blog comment section.  
+
+---
+
+### Step 2 — Understand Filter
+
+Application uses:
+```
+replace("<", "&lt;")  
+```
+→ Only first occurrence is replaced  
+
+---
+
+### Step 3 — Craft Payload
+```
+<><img src=1 onerror=alert(1)>
+```
+---
+
+### Step 4 — Submit Comment
+
+Payload is stored in database.  
+
+---
+
+### Step 5 — Page Loads
+
+Stored comment is rendered.  
+
+---
+
+### Step 6 — JavaScript Execution
+
+innerHTML is used to insert comment.  
+
+---
+
+### Step 7 — Browser Parsing
+
+After filtering:
+```
+&lt;&gt;<img src=1 onerror=alert(1)>
+```
+→ First tag neutralized  
+→ Second tag executes  
+
+---
+
+### Step 8 — Execution
+
+- Image fails to load  
+- onerror triggers  
+- alert executes  
+
+💥 Lab solved  
+
+---
+
+## 🔹 Evidence / Screenshot (SS)
+
+![Stored DOM XSS execution](../images/combined-stored-dom-xss-execution.png)
+
+---
+
+## 🌍 Real-World Scenarios
+
+---
+
+### 🟢 Comment Systems
+
+Blogs  
+Forums  
+
+---
+
+### 🟢 User Profiles
+
+Name fields  
+Bio sections  
+
+---
+
+### 🟢 Admin Dashboards
+
+User-generated content rendering  
+
+---
+
+### 🟢 Reviews / Feedback
+
+Stored inputs displayed later  
+
+---
+
+### 🟢 Support Ticket Systems
+
+User input shown to admins  
+
+---
+
+### 🟢 Messaging / Chat Systems
+
+Messages rendered dynamically  
+
+---
+
+### 🟢 File Upload Names
+
+Filename rendered unsafely  
+
+---
+
+## 🎯 High-Value Targets
+
+- Admin panels  
+- Moderation dashboards  
+- Comment sections  
+- Stored user content  
+- Support systems  
+- CRM tools  
+- Notification panels  
+- Internal dashboards  
+
+---
+
+## 🔁 Reverse Scenarios
+
+---
+
+### 🔴 Proper Filtering
+```
+replaceAll("<", "&lt;")  
+```
+→ Attack fails  
+
+---
+
+### 🔴 Safe DOM APIs
+
+textContent instead of innerHTML  
+
+---
+
+### 🔴 Sanitization Libraries
+
+Remove dangerous tags  
+
+---
+
+### 🔴 CSP Protection
+
+Blocks inline execution  
+
+---
+
+### 🔴 Output Encoding
+
+Payload rendered as text  
+
+---
+
+## 🔗 Attack Chains
+
+---
+
+### 🔥 Account Takeover
+
+Session hijacking via payload  
+
+---
+
+### 🔥 Admin Compromise
+
+Stored payload executed in admin panel  
+
+---
+
+### 🔥 Data Theft
+
+Extract sensitive information  
+
+---
+
+### 🔥 Phishing Redirection
+
+Redirect users to malicious sites  
+
+---
+
+### 🔥 Worm Propagation
+
+Self-replicating stored payload  
+
+---
+
+### 🔥 Token Theft
+
+Extract CSRF tokens → perform actions  
+
+---
+
+## 🧪 Methodology
+
+- Insert test input  
+- Confirm storage  
+- Reload page  
+- Inspect DOM  
+- Identify sink  
+- Test payload  
+- Bypass filter  
+- Confirm execution  
+
+---
+
+## 🛡 Remediation
+
+- Avoid innerHTML  
+- Use textContent  
+- Sanitize inputs  
+- Use proper encoding  
+- Implement CSP  
+
+---
+
+## 💡 Notes / Mindset
+
+- Stored + DOM = high impact  
+- Weak filters are exploitable  
+- Execution matters more than payload  
+
+Always ask:
+
+→ Is input stored?  
+→ Is it rendered via JS?  
+→ Is filtering incomplete?  
+
+---
+
+## 🧠 Mental Model
+
+Store  
+→ Load  
+→ Inject  
+→ Parse  
+→ Execute  
+→ Impact  
+
+---
