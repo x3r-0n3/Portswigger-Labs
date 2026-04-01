@@ -3530,3 +3530,292 @@ Input
 → Impact  
 
 ---
+
+# Lab - 9 🐞 DOM-Based XSS (JSON + eval + Broken Escaping) 
+
+---
+
+## 🔹 Overview
+
+Reflected DOM XSS happens when:
+
+- User input goes to server  
+- Server reflects it inside JSON response  
+- JavaScript reads that response  
+- A dangerous function processes it  
+- Browser executes injected code  
+
+---
+
+## 🔹 What Is This Topic?
+
+This lab demonstrates:
+
+Reflected DOM XSS using unsafe JSON handling with eval.
+
+Pattern:
+```
+eval('var data = JSON_RESPONSE')
+```
+---
+
+## 🔹 Lab Walkthrough
+
+---
+
+### Step 1 — Open Lab
+
+Go to search functionality.
+
+---
+
+### Step 2 — Test Input Reflection
+
+Input:
+
+XSS123  
+
+---
+
+### Step 3 — Intercept Request
+
+Using proxy tool → observe response:
+
+JSON response contains searchTerm with user input  
+
+---
+
+## 🔹 Evidence / Screenshot (SS)
+
+![JSON response reflection](../images/json-response-reflection.png)
+
+---
+
+### Step 4 — Locate JavaScript Usage
+
+Check JavaScript files:
+
+searchResults.js  
+
+Found:
+
+eval usage parsing server response  
+
+---
+
+### Step 5 — Identify Context
+
+→ Input is inside JSON string  
+
+- JavaScript string context  
+- Parsed again using eval  
+- Double parsing scenario  
+
+---
+
+## 🔹 Evidence / Screenshot (SS)
+
+![eval usage in searchResults.js](../images/eval-json-processing.png)
+
+---
+
+### Step 6 — Try Basic Payload
+```
+";alert(1);//
+```
+❌ Does NOT execute  
+
+---
+
+### Step 7 — Understand Why
+
+- Quotes are escaped  
+- String remains intact  
+
+---
+
+### Step 8 — Find Weak Point
+
+→ Backslash not properly escaped  
+
+→ Leads to escaping inconsistency  
+
+---
+
+### Step 9 — Final Payload
+```
+\"-alert(1)}//
+```
+---
+
+### Step 10 — Internal Behavior
+
+- Server escapes quotes  
+- JavaScript re-processes string  
+- Backslash handling breaks structure  
+
+---
+
+### Step 11 — Execution
+
+- String breaks  
+- alert executes  
+- Remaining code commented  
+
+💥 Alert triggered  
+
+---
+
+## 🌍 Real-World Scenarios
+
+---
+
+### 🟢 JSON + eval Usage
+
+eval used to parse API responses  
+
+---
+
+### 🟢 API-Based Search Systems
+
+Autocomplete  
+
+Live search  
+
+---
+
+### 🟢 Dynamic Dashboards
+
+JSON data rendered dynamically  
+
+---
+
+### 🟢 Legacy JavaScript Apps
+
+Old applications using eval  
+
+---
+
+### 🟢 Third-Party Integrations
+
+External APIs processed unsafely  
+
+---
+
+### 🟢 Analytics Scripts
+
+Dynamic configs parsed via eval  
+
+---
+
+### 🟢 Admin Panels
+
+JSON-based data rendering  
+
+---
+
+## 🎯 High-Value Targets
+
+- Search endpoints  
+- API responses  
+- JSON parsers  
+- JavaScript files  
+- Autocomplete APIs  
+- Admin dashboards  
+- Analytics panels  
+- Third-party integrations  
+
+---
+
+## 🔗 Attack Chains
+
+---
+
+### 🔥 Session Hijacking
+
+Steal cookies via injected JavaScript  
+
+---
+
+### 🔥 Account Takeover
+
+Extract tokens and sessions  
+
+---
+
+### 🔥 Data Exfiltration
+
+Access sensitive API data  
+
+---
+
+### 🔥 Admin Compromise
+
+Payload executes in admin browser  
+
+---
+
+### 🔥 Advanced Chain
+
+eval XSS  
+→ Extract API tokens  
+→ Call internal APIs  
+
+---
+
+### 🔥 Stored-to-DOM Chain
+
+Stored input  
+→ Returned in JSON  
+→ eval executes  
+
+---
+
+## 🧪 Methodology
+
+- Send input  
+- Observe reflection in response  
+- Locate JS file processing it  
+- Identify eval sink  
+- Identify string context  
+- Test payloads  
+- Break escaping  
+- Execute payload  
+
+---
+
+## 🛡 Remediation
+
+- Avoid eval  
+- Use JSON.parse  
+- Escape input correctly  
+- Sanitize backslashes  
+- Use secure frameworks  
+
+---
+
+## 💡 Notes / Mindset
+
+- eval + JSON = high risk  
+- Double parsing = attack surface  
+- Escaping mismatch = entry point  
+
+Always ask:
+
+→ Is data inside JSON?  
+→ Is eval used?  
+→ Can escaping be broken?  
+
+---
+
+## 🧠 Mental Model
+
+Input  
+→ Server JSON  
+→ eval parsing  
+→ escaping mismatch  
+→ break string  
+→ execute  
+→ impact  
+
+---
