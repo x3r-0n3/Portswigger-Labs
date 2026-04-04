@@ -8929,7 +8929,7 @@ alert(1)
 
 ## 📸 Screenshot — Final Encoded Payload
 
-![final-encoded-payload](../images/html-final-encoded-payload.png)
+![final-encoded-payload](../images/html-encoded-final-payload.png)
 
 ---
 
