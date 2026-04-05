@@ -10284,11 +10284,11 @@ URL:
 ?search=PAYLOAD#x
 ```
 
-![final payload](../images/angular-csp-bypass-paylaod.png)
-
 ---
 
 ## 💣 Payload Breakdown
+
+![bypass](../images/angular-csp-bypass-paylaod.png)
 
 ---
 
