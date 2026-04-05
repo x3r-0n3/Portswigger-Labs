@@ -10284,7 +10284,7 @@ URL:
 ?search=PAYLOAD#x
 ```
 
-![payload](../images/angular-csp-bypass-paylaod.png)
+![final payload](../images/angular-csp-bypass-paylaod.png)
 
 ---
 
