@@ -11898,14 +11898,14 @@ to leak CSRF tokens and perform sensitive actions.
 
 ---
 
-1️⃣ XSS point exists (email parameter)
-2️⃣ CSP blocks normal JS execution
-3️⃣ Attacker injects HTML (button instead of script)
-4️⃣ Button sends form data to attacker (GET request)
-5️⃣ CSRF token leaks in URL
-6️⃣ Attacker captures token
-7️⃣ Attacker sends POST request using token
-8️⃣ Sensitive action executed (change email)
+- 1️⃣ XSS point exists (email parameter)
+- 2️⃣ CSP blocks normal JS execution
+- 3️⃣ Attacker injects HTML (button instead of script)
+- 4️⃣ Button sends form data to attacker (GET request)
+- 5️⃣ CSRF token leaks in URL
+- 6️⃣ Attacker captures token
+- 7️⃣ Attacker sends POST request using token
+- 8️⃣ Sensitive action executed (change email)
 
 ---
 
@@ -11917,10 +11917,10 @@ to leak CSRF tokens and perform sensitive actions.
 
 👉 Key terms:
 
-✔ XSS (Cross-Site Scripting) → Inject code into page
-✔ CSP (Content Security Policy) → Blocks scripts
-✔ CSRF Token → Secret token to protect actions
-✔ Form Hijacking → Redirect form submission
+- ✔ XSS (Cross-Site Scripting) → Inject code into page
+- ✔ CSP (Content Security Policy) → Blocks scripts
+- ✔ CSRF Token → Secret token to protect actions
+- ✔ Form Hijacking → Redirect form submission
 
 ---
 
@@ -12227,12 +12227,12 @@ Store → Deliver exploit to victim
 
 ---
 
-1️⃣ Inject button
-2️⃣ Victim clicks
-3️⃣ CSRF leaks
-4️⃣ Script runs again
-5️⃣ Hidden form sent
-6️⃣ Email changed
+- 1️⃣ Inject button
+- 2️⃣ Victim clicks
+- 3️⃣ CSRF leaks
+- 4️⃣ Script runs again
+- 5️⃣ Hidden form sent
+- 6️⃣ Email changed
 
 ---
 
@@ -12246,10 +12246,10 @@ Store → Deliver exploit to victim
 
 👉 Solution:
 
-✔ Use:
-✔ ngrok
-✔ VPS server
-✔ Custom domain
+- ✔ Use:
+- ✔ ngrok
+- ✔ VPS server
+- ✔ Custom domain
 
 ---
 
@@ -12317,14 +12317,14 @@ Store → Deliver exploit to victim
 
 👉 Target these in real world:
 
-
-/my-account/change-email
-/change-password
-/add-payment-method
-/transfer-money
-/api/update-profile
-/admin/*
-
+```
+- /my-account/change-email
+- /change-password
+- /add-payment-method
+- /transfer-money
+- /api/update-profile
+- /admin/*
+```
 
 ---
 
@@ -12362,12 +12362,12 @@ XSS → Change email → Reset password → Full takeover
 
 👉 Fix using:
 
-✔ Strict CSP (block inline + restrict forms)
-✔ form-action directive
-✔ HttpOnly cookies
-✔ SameSite cookies
-✔ CSRF tokens bound to session
-✔ Output encoding
+- ✔ Strict CSP (block inline + restrict forms)
+- ✔ form-action directive
+- ✔ HttpOnly cookies
+- ✔ SameSite cookies
+- ✔ CSRF tokens bound to session
+- ✔ Output encoding
 
 ---
 
