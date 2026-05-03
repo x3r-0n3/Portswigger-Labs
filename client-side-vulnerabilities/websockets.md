@@ -6,7 +6,7 @@ This lab demonstrates a WebSocket-based XSS vulnerability where:
 
 Attacker injects malicious payload into a WebSocket message → server forwards it → executed in another user's browser
 
-It combines:
+It combines: 
 
 - Real-time communication (WebSockets)
 - Client-side vulnerability (XSS)
