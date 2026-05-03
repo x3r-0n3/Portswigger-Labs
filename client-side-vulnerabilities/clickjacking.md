@@ -1151,3 +1151,249 @@ This lab uses clickjacking to force a user click on a hidden iframe that contain
 If you want next, I can give you:
 
 👉 “a master map of all clickjacking lab types + how to recognize them instantly in exams”
+
+---
+
+# 🧠 Lab-5 MULTI-STEP CLICKJACKING (CONFIRMATION BYPASS LAB) — COMPLETE NOTES
+
+## 📌 1️⃣ OVERVIEW
+
+This lab demonstrates an advanced form of clickjacking where:
+
+User is tricked into performing TWO sequential sensitive actions using layered fake UI elements
+
+It extends basic clickjacking by adding:
+
+- Multi-step interaction flow
+- Confirmation dialog bypass
+- Precision pixel alignment
+
+## 📌 2️⃣ WHAT IS THE TOPIC?
+
+### 🧩 Core concepts:
+
+- Clickjacking (UI redressing)
+- Multi-step attack chaining
+- DOM layering (iframe + div overlays)
+- State change handling in web apps
+
+### 🧩 Goal:
+
+Force user to delete account by clicking two fake buttons:
+
+1️⃣ Delete account  
+2️⃣ Confirm (Yes)
+
+## 📌 3️⃣ VULNERABILITY IDEA
+
+The target page:
+
+- Loads inside an iframe
+- Has sensitive action: Delete account
+- Shows confirmation dialog after first click
+
+Attacker abuses:
+
+User clicks fake UI → real clicks are executed inside iframe
+
+## 📌 4️⃣ ATTACK FLOW (VISUAL MODEL)
+
+```text
+Click 1 → triggers Delete account
+Click 2 → triggers Confirm Yes
+```
+
+Both clicks are mapped using overlays.
+
+## 📌 5️⃣ KEY INSIGHT FROM YOUR EXPERIMENT
+
+You observed:
+
+- First click position ≈ 500px
+- Second click position ≈ 300px
+
+This confirms:
+
+Different UI states require different pixel alignment
+
+## 📌 6️⃣ WHY TWO DIFFERENT TOP VALUES WORK
+
+Because after first click:
+
+### 🧩 Step 1 screen:
+
+Delete button visible → aligned at ~500px
+
+### 🧩 Step 2 screen:
+
+Confirmation dialog appears → aligned at ~300px
+
+So:
+
+Each UI state has its own coordinate system
+
+## 📌 7️⃣ LAB WALKTHROUGH (STEP-BY-STEP)
+
+### 🟢 Step 1 — Load account page in iframe
+
+```text
+/my-account
+```
+
+### 🟢 Step 2 — Create fake UI layers
+
+- “Click me first”
+- “Click me next”
+
+### 🟢 Step 3 — Align first click
+
+```text
+top ≈ 500px
+```
+
+👉 maps to Delete Account button
+
+### 🟢 Step 4 — Align second click
+
+```text
+top ≈ 300px
+```
+
+👉 maps to confirmation “Yes” button
+
+### 🟢 Step 5 — Use opacity debug mode
+
+```css
+opacity: 0.1;
+```
+
+Used for alignment testing.
+
+### 🟢 Step 6 — Final exploit mode
+
+```css
+opacity: 0.0001;
+```
+
+### 🟢 Step 7 — Deliver exploit
+
+Victim clicks:
+
+1️⃣ Delete account  
+2️⃣ Confirm yes
+
+## 📌 8️⃣ FINAL PAYLOAD (CLEAN VERSION)
+
+```html
+<style>
+iframe {
+    position: relative;
+    width: 500px;
+    height: 700px;
+    opacity: 0.0001;
+    z-index: 2;
+}
+
+.firstClick, .secondClick {
+    position: absolute;
+    z-index: 1;
+}
+
+.firstClick {
+    top: 500px;
+    left: 50px;
+}
+
+.secondClick {
+    top: 300px;
+    left: 225px;
+}
+</style>
+
+<div class="firstClick">Click me first</div>
+<div class="secondClick">Click me next</div>
+
+<iframe src="https://YOUR-LAB-ID.web-security-academy.net/my-account"></iframe>
+```
+
+## 📌 9️⃣ PAYLOAD BREAKDOWN
+
+### 🧩 iframe
+
+Loads real account page inside attacker-controlled page
+
+### 🧩 firstClick
+
+Triggers delete account action
+
+### 🧩 secondClick
+
+Triggers confirmation dialog (Yes button)
+
+### 🧩 opacity
+
+Hides real UI but keeps it clickable
+
+### 🧩 positioning (top/left)
+
+Maps fake UI to real button coordinates in each UI state
+
+## 📌 0️⃣ REAL-WORLD SCENARIOS
+
+- Account deletion attacks
+- Payment confirmation fraud
+- Subscription cancellation abuse
+- Admin panel privilege changes
+- Multi-step workflow manipulation
+
+## 📌 1️⃣ VARIATION INSIGHT
+
+Each UI state = new coordinate map inside iframe
+
+Attackers must re-align for:
+
+- popups
+- modals
+- redirects
+- confirmation dialogs
+
+## 📌 2️⃣ MULTI-CHAIN MODEL
+
+```text
+Fake click → real delete → confirmation → final action
+```
+
+## 📌 3️⃣ REMEDIATION
+
+### 🛡️ 1. X-Frame-Options
+
+```http
+DENY
+SAMEORIGIN
+```
+
+### 🛡️ 2. CSP frame-ancestors
+
+```http
+frame-ancestors 'none'
+```
+
+### 🛡️ 3. Avoid critical actions via UI only
+
+Require:
+
+- password re-entry
+- OTP confirmation
+- server-side confirmation tokens
+
+## 📌 4️⃣ KEY MINDSET
+
+Multi-step clickjacking is precise UI manipulation across multiple application states, where each click is mapped to a different UI layer inside an iframe.
+
+## 🔥 FINAL SUMMARY
+
+This lab uses multi-step clickjacking where two fake buttons are aligned to two different UI states (delete and confirm), allowing an attacker to force account deletion through sequential hidden clicks.
+
+If you want next, I can show you:
+
+👉 “how to solve any multi-step clickjacking lab in under 90 seconds using pattern recognition (no guessing)”
