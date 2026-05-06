@@ -1,4 +1,4 @@
-# 🧠 Lab-1 WEBSOCKET XSS (LIVE CHAT) — COMPLETE NOTES
+# 🧠 Lab-1 WEBSOCKET XSS (LIVE CHAT) 
 
 ## 📌 1️⃣ OVERVIEW
 
@@ -249,15 +249,11 @@ WebSockets are just live APIs — every message is an attack surface
 
 ## 🔥 FINAL SUMMARY
 
-This lab shows how intercepting and modifying a WebSocket message allows an attacker to bypass client-side encoding and inject a malicious XSS payload that executes in another user's browser in real time.
-
-If you want next, I can give you:
-
-👉 “WebSocket attack cheat sheet (payloads + patterns to solve labs instantly)”
+This lab shows how intercepting and modifying a WebSocket message allows an attacker to bypass client-side encoding and inject a malicious XSS payload that executes in another user's browser in real time.”
 
 ---
 
-# 🧠 Lab-2 CROSS-SITE WEBSOCKET HIJACKING (CSWSH) — COMPLETE NOTES
+# 🧠 Lab-2 CROSS-SITE WEBSOCKET HIJACKING (CSWSH) 
 
 ## 📌 1️⃣ OVERVIEW
 
@@ -559,14 +555,9 @@ fetch() = data exfiltration
 
 You trick the victim’s browser into opening a WebSocket connection and force it to leak sensitive data to you.
 
-If you want next, I can:
-
-👉 compare **CSRF vs CSWSH vs Clickjacking (very important exam concept)**  
-👉 or give you **real bug bounty examples where this exact attack was used**
-
 ---
 
-# 🧠Lab-3 WEBSOCKETS XSS WITH FILTER BYPASS + HANDSHAKE MANIPULATION — COMPLETE NOTES
+# 🧠Lab-3 WEBSOCKETS XSS WITH FILTER BYPASS + HANDSHAKE MANIPULATION 
 
 ## 📌 1️⃣ OVERVIEW
 
@@ -861,7 +852,3 @@ Message = Attack vector
 ## 🔥 FINAL SUMMARY
 
 This lab shows how an attacker can bypass a weak XSS filter using payload obfuscation and bypass IP-based blocking by manipulating the WebSocket handshake, ultimately achieving XSS execution in another user's browser.
-
-If you want next, I can give you:
-
-👉 “Complete XSS filter bypass cheat sheet (real-world payload patterns hackers use)”
