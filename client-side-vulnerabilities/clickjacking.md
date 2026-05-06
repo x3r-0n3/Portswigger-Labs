@@ -1,4 +1,4 @@
-# 🧠 Lab-1 — Delete Account (CSRF-protected button)
+# 🧠 Lab-1 Delete Account (CSRF-protected button)
 
 ---
 
@@ -347,7 +347,7 @@ Clickjacking does NOT bypass authentication — it abuses user interaction insid
 
 ---
 
-# 🧠 Lab-2 — Delete Account (CSRF-protected button)
+# 🧠 Lab-2 Delete Account (CSRF-protected button)
 
 ---
 
@@ -696,7 +696,7 @@ Clickjacking does NOT bypass authentication — it abuses user interaction insid
 
 ---
 
-# 🧠 Lab-3 (FRAME BUSTING BYPASS) — COMPLETE NOTES
+# 🧠 Lab-3 (FRAME BUSTING BYPASS) 
 
 ## 📌 1️⃣ OVERVIEW
 
@@ -928,10 +928,6 @@ Clickjacking is not about hacking code — it's about hacking human perception o
 
 Clickjacking works by hiding a real sensitive button inside an iframe and tricking the user into clicking it through a fake UI, bypassed in this lab using sandbox + pixel-perfect alignment.
 
-If you want next, I can upgrade your understanding to:
-
-👉 “real bug bounty clickjacking techniques (zero-frame-busting + CSP bypass + multi-step attacks)”
-
 ---
 
 # 🧠 Lab-4 CLICKJACKING + DOM XSS (print() LAB) 
@@ -1148,13 +1144,9 @@ Clickjacking is UI manipulation, XSS is code execution — combining both remove
 
 This lab uses clickjacking to force a user click on a hidden iframe that contains a DOM XSS payload, which executes `print()` when triggered.
 
-If you want next, I can give you:
-
-👉 “a master map of all clickjacking lab types + how to recognize them instantly in exams”
-
 ---
 
-# 🧠 Lab-5 MULTI-STEP CLICKJACKING (CONFIRMATION BYPASS LAB) — COMPLETE NOTES
+# 🧠 Lab-5 MULTI-STEP CLICKJACKING (CONFIRMATION BYPASS LAB) 
 
 ## 📌 1️⃣ OVERVIEW
 
@@ -1393,7 +1385,3 @@ Multi-step clickjacking is precise UI manipulation across multiple application s
 ## 🔥 FINAL SUMMARY
 
 This lab uses multi-step clickjacking where two fake buttons are aligned to two different UI states (delete and confirm), allowing an attacker to force account deletion through sequential hidden clicks.
-
-If you want next, I can show you:
-
-👉 “how to solve any multi-step clickjacking lab in under 90 seconds using pattern recognition (no guessing)”
