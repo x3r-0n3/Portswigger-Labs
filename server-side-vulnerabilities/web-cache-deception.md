@@ -362,8 +362,3 @@ Bug = mismatch between both interpretations
 Web Cache Deception = trick cache into storing private responses by disguising them as static file requests.
 
 ---
-
-If you want next, I can give you:
-
-👉 1-page ultra revision sheet (for exams / interviews)  
-👉 or real bug bounty detection workflow (how to find this in minutes in real sites)
