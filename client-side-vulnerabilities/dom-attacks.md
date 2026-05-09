@@ -1616,3 +1616,556 @@ javascript: executes
 ## 🧠 Final One-Line Understanding
 
 Attacker sends crafted JSON through `postMessage`, the victim page blindly parses and trusts it, then loads attacker-controlled JavaScript into `iframe.src`, resulting in DOM XSS.
+
+---
+
+# 📌Lab-4 DOM-Based Open Redirection using Regex + location.href
+
+---
+
+## 🧭 Overview
+
+This lab demonstrates:
+
+```text
+DOM-Based Open Redirection
+```
+
+The vulnerability occurs because:
+
+- JavaScript reads attacker-controlled input from the URL
+- extracts an external URL using regex
+- redirects browser using `location.href`
+
+This allows attackers to:
+
+- redirect victims to malicious websites
+- abuse trusted domains for phishing
+- potentially escalate to DOM XSS in some cases
+
+---
+
+## 🧠 What Is This Topic?
+
+DOM-based open redirect happens when:
+
+```text
+client-side JavaScript takes attacker-controlled data
+and sends it into a redirect sink
+```
+
+Common redirect sinks:
+
+```javascript
+location
+location.href
+location.assign()
+window.open()
+```
+
+Unlike server-side open redirects:
+
+- backend is NOT vulnerable
+- browser-side JavaScript IS vulnerable
+
+The redirect happens:
+
+```text
+inside victim's browser
+after JavaScript executes
+```
+
+---
+
+## ⚠️ Core Vulnerability Concept
+
+### 📥 Source
+
+Attacker-controlled source:
+
+```javascript
+location
+```
+
+Specifically:
+
+```text
+?url=
+```
+
+---
+
+### ☠️ Sink
+
+Dangerous sink:
+
+```javascript
+location.href
+```
+
+This tells browser:
+
+```text
+Navigate to another page
+```
+
+---
+
+## 🧪 Vulnerable Code
+
+### 🖼️ SS - View Source (Redirect URL Extraction Code)
+
+![ss1](../images/view-source-redirect-url-regex.png)
+
+```javascript
+<a href='#' onclick='returnUrl = /url=(https?:\/\/.+)/.exec(location);
+
+if(returnUrl)
+    location.href = returnUrl[1];
+else
+    location.href = "/"'>
+Back to Blog
+</a>
+```
+
+---
+
+## 🔍 Vulnerable Code Breakdown
+
+### 🧭 Step 1 — User Clicks Link
+
+JavaScript runs only when victim clicks:
+
+```text
+Back to Blog
+```
+
+because code is inside:
+
+```javascript
+onclick=
+```
+
+---
+
+### 🌐 Step 2 — Browser Reads Current URL
+
+```javascript
+location
+```
+
+contains entire current page URL.
+
+Example:
+
+```text
+https://lab.net/post?postId=4&url=https://evil.com
+```
+
+---
+
+### 🔎 Step 3 — Regex Executes
+
+```javascript
+/url=(https?:\/\/.+)/.exec(location)
+```
+
+Meaning:
+
+```text
+Find url=http:// OR url=https:// inside current URL
+```
+
+---
+
+## 🧩 Regex Breakdown
+
+### 🔹 url=
+
+Looks for:
+
+```text
+url=
+```
+
+inside URL.
+
+---
+
+### 🔹 https?
+
+Means:
+
+```text
+http OR https
+```
+
+---
+
+### 🔹 :\/\/
+
+Means:
+
+```text
+://
+```
+
+---
+
+### 🔹 .+
+
+Means:
+
+```text
+everything after that
+```
+
+---
+
+## 📤 Regex Result
+
+Regex extracts:
+
+```text
+https://evil.com
+```
+
+---
+
+### 📦 Step 4 — Result Stored in Array
+
+```javascript
+returnUrl
+```
+
+becomes:
+
+```javascript
+[
+ "url=https://evil.com",
+ "https://evil.com"
+]
+```
+
+---
+
+## 📚 Array Meaning
+
+| Index | Meaning |
+|---|---|
+| [0] | full regex match |
+| [1] | extracted URL only |
+
+---
+
+### ✅ Step 5 — if(returnUrl)
+
+```javascript
+if(returnUrl)
+```
+
+means:
+
+```text
+If regex found a URL
+```
+
+---
+
+### ☠️ Step 6 — Dangerous Redirect
+
+```javascript
+location.href = returnUrl[1];
+```
+
+Browser executes:
+
+```text
+redirect victim to extracted URL
+```
+
+---
+
+## 🎯 Final Result
+
+Victim gets redirected:
+
+FROM:
+
+```text
+trusted website
+```
+
+TO:
+
+```text
+attacker-controlled website
+```
+
+---
+
+# 🧪 Lab Walkthrough
+
+### 🌐 Step 1 — Open Any Blog Post
+
+Example:
+
+```text
+/post?postId=4
+```
+
+---
+
+### 🔍 Step 2 — Observe “Back to Blog” Link
+
+Notice:
+
+```text
+redirect handled by JavaScript
+NOT backend
+```
+
+---
+
+### 🎯 Step 3 — Identify Attacker-Controlled Parameter
+
+Page reads:
+
+```text
+?url=
+```
+
+from current URL.
+
+---
+
+### 💣 Step 4 — Craft Exploit URL
+
+```text
+https://YOUR-LAB-ID.web-security-academy.net/post?postId=4&url=https://YOUR-EXPLOIT-SERVER-ID.exploit-server.net/
+```
+
+---
+
+### 🌍 Step 5 — Open Crafted URL
+
+Paste into browser.
+
+---
+
+### 🖱️ Step 6 — Click “Back to Blog”
+
+Triggers:
+
+- regex extraction
+- redirect sink
+- browser navigation
+
+---
+
+### 🚨 Step 7 — Browser Redirects
+
+Victim redirected to:
+
+```text
+exploit server
+```
+
+Lab solved.
+
+---
+
+## 🔄 Execution Flow
+
+```text
+Victim visits crafted URL
+        ↓
+User clicks Back to Blog
+        ↓
+onclick JavaScript executes
+        ↓
+Regex extracts attacker URL
+        ↓
+location.href redirects browser
+        ↓
+Victim lands on malicious site
+```
+
+---
+
+# 🌍 Real-World Scenarios
+
+## 🎣 1. Phishing Attacks
+
+Attacker sends:
+
+```text
+https://trusted-bank.com/post?url=https://fake-login.com
+```
+
+Victim trusts:
+
+- bank domain
+- HTTPS certificate
+
+Then redirected to:
+
+```text
+phishing login page
+```
+
+---
+
+## 🔐 2. OAuth Redirect Abuse
+
+Manipulate:
+
+```text
+returnUrl
+redirect_uri
+continue
+next
+```
+
+to steal:
+
+- tokens
+- sessions
+
+---
+
+## ☠️ 3. Escalation to DOM XSS
+
+If attacker injects:
+
+```text
+javascript:
+```
+
+payloads may become:
+
+```text
+DOM XSS
+```
+
+Example:
+
+```javascript
+javascript:alert(1)
+```
+
+---
+
+# 🎯 High-Value Endpoints
+
+Look for:
+
+```text
+login pages
+logout redirects
+OAuth flows
+payment redirects
+returnUrl=
+next=
+continue=
+redirect=
+```
+
+---
+
+# 🔗 Multi-Chain Attacks
+
+| Chain | Result |
+|---|---|
+| Phishing | credential theft |
+| OAuth abuse | token theft |
+| DOM XSS | JavaScript execution |
+| CSRF | forced victim navigation |
+| Session fixation | account compromise |
+
+---
+
+# 🧠 Mental Model
+
+```text
+Attacker controls URL parameter
+        ↓
+JavaScript reads parameter
+        ↓
+Regex extracts external URL
+        ↓
+location.href redirects browser
+        ↓
+Victim lands on malicious site
+```
+
+---
+
+# 🛡️ Remediation
+
+## ❌ Never Redirect Using Raw User Input
+
+BAD:
+
+```javascript
+location.href = userInput
+```
+
+---
+
+## ✅ Use Allowlists
+
+GOOD:
+
+```javascript
+if(url.startsWith("/"))
+```
+
+Allow only:
+
+- internal routes
+- same-origin paths
+
+---
+
+## 🔒 Validate Domains Strictly
+
+Allow:
+
+```text
+exact domains only
+```
+
+Do NOT use:
+
+```javascript
+indexOf()
+startsWith()
+endsWith()
+```
+
+for trust decisions.
+
+---
+
+## 📍 Prefer Relative Paths
+
+Safer:
+
+```text
+/dashboard
+/profile
+/settings
+```
+
+instead of:
+
+```text
+full external URLs
+```
+
+---
+
+# 🧠 Final Easy Understanding
+
+DOM-based open redirect happens when browser JavaScript reads attacker-controlled input from the URL and uses it in a redirect sink like `location.href`, allowing attackers to redirect victims to malicious websites.
