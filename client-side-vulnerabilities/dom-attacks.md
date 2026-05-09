@@ -1130,7 +1130,7 @@ Therefore attacker controls iframe source.
 
 ### 🖼️ SS - View Source (Vulnerable JSON Parsing Code)
 
-![ss1](view-source-json-code.png)
+![ss1](../images/view-source-json-code.png)
 
 Example vulnerable code:
 
