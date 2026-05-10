@@ -2169,3 +2169,525 @@ full external URLs
 # 🧠 Final Easy Understanding
 
 DOM-based open redirect happens when browser JavaScript reads attacker-controlled input from the URL and uses it in a redirect sink like `location.href`, allowing attackers to redirect victims to malicious websites.
+
+---
+
+# 🧠Lab-5 DOM XSS via Poisoned Cookie + window.x Loop Prevention
+
+---
+
+## 📝 Overview
+
+This section explains a very important JavaScript trick used inside exploit payloads:
+
+```javascript
+if(!window.x)
+window.x = 1
+```
+
+This is NOT directly a vulnerability.
+
+It is:
+
+- exploit control logic
+- loop prevention
+- state tracking inside browser
+
+This technique is commonly used in:
+
+- XSS payloads
+- iframe attacks
+- redirect chains
+- exploit automation
+- multi-step DOM attacks
+
+---
+
+## 🎯 What Is This Topic?
+
+Sometimes an exploit needs:
+
+1. one page to load first
+
+2. then automatically redirect/load another page
+
+BUT:
+
+changing iframe.src triggers another page load
+
+and each new page load triggers:
+
+```javascript
+onload
+```
+
+again.
+
+This can accidentally create:
+
+## ⚠️ Infinite Reload Loop
+
+To stop this, attackers/developers use a temporary browser memory variable like:
+
+```javascript
+window.x
+```
+
+This acts like:
+
+- a flag
+- a switch
+- a memory marker
+
+---
+
+## 🧠 Core Concept
+
+The exploit uses:
+
+```javascript
+if(!window.x)
+```
+
+Meaning:
+
+```text
+"If x does NOT exist yet"
+```
+
+Initially:
+
+```javascript
+window.x
+```
+
+is:
+
+```javascript
+undefined
+```
+
+and undefined behaves like:
+
+```text
+FALSE
+```
+
+So:
+
+```javascript
+!window.x
+```
+
+becomes:
+
+```text
+TRUE
+```
+
+This allows code to execute ONLY ONCE.
+
+After execution:
+
+```javascript
+window.x = 1
+```
+
+Now:
+
+```text
+x exists
+x behaves like TRUE
+```
+
+So future checks fail:
+
+```javascript
+!window.x → FALSE
+```
+
+and the loop stops.
+
+---
+
+## 🧭 Lab Walkthrough
+
+### 📝 Vulnerable Payload
+
+```html
+<iframe src="MALICIOUS_URL"
+onload="
+if(!window.x)
+this.src='https://TARGET-SITE';
+window.x=1;
+">
+```
+
+---
+
+### 🪟 Step 1 — iframe Loads First URL
+
+Browser opens:
+
+```text
+MALICIOUS_URL
+```
+
+Purpose:
+
+- poison cookie
+- trigger redirect
+- inject payload
+- perform first exploit stage
+
+---
+
+### 🔄 Step 2 — iframe Finishes Loading
+
+When page finishes loading:
+
+```javascript
+onload
+```
+
+executes.
+
+---
+
+### 🧪 Step 3 — Browser Checks
+
+```javascript
+if(!window.x)
+```
+
+Initially:
+
+```javascript
+window.x = undefined
+```
+
+which behaves as FALSE.
+
+So:
+
+```javascript
+!undefined
+```
+
+becomes:
+
+```text
+true
+```
+
+Condition passes.
+
+---
+
+### 🌐 Step 4 — Redirect Happens
+
+```javascript
+this.src='https://TARGET-SITE'
+```
+
+Meaning:
+
+```text
+change iframe page
+```
+
+iframe now loads:
+
+- homepage
+- second-stage target
+- XSS trigger page
+
+---
+
+### 🏴 Step 5 — Flag Gets Set
+
+```javascript
+window.x = 1
+```
+
+Now browser remembers:
+
+```text
+redirect already happened once
+```
+
+---
+
+### 🔁 Step 6 — iframe Loads Again
+
+Because src changed:
+
+```text
+iframe reloads
+```
+
+onload triggers AGAIN.
+
+---
+
+### 🛑 Step 7 — Browser Rechecks Condition
+
+Now:
+
+```javascript
+window.x = 1
+```
+
+and 1 behaves like TRUE.
+
+So:
+
+```javascript
+!1
+```
+
+becomes:
+
+```text
+false
+```
+
+Condition fails.
+
+Redirect does NOT happen again.
+
+Loop stops.
+
+---
+
+## ⚠️ Why Infinite Loop Happens Without This
+
+Without protection:
+
+```javascript
+this.src='https://TARGET-SITE'
+```
+
+would execute every single time iframe loads.
+
+Flow:
+
+```text
+load
+↓
+redirect
+↓
+load
+↓
+redirect
+↓
+load
+↓
+forever
+```
+
+Browser continuously reloads.
+
+---
+
+## 🌍 Real-World Analogy
+
+Think of:
+
+```javascript
+window.x = "already done" sticker
+```
+
+Without sticker:
+
+```text
+worker repeats task forever
+```
+
+With sticker:
+
+```text
+worker checks sticker first
+
+if already done → stop
+```
+
+---
+
+## 🔍 Payload Breakdown
+
+### 🌐 window
+
+Global browser page object.
+
+Stores:
+
+- variables
+- functions
+- page state
+
+---
+
+### 🏴 window.x
+
+Custom global variable.
+
+Acts as:
+
+- flag
+- temporary memory
+- execution marker
+
+---
+
+### ❗ !
+
+Logical NOT operator.
+
+Flips:
+
+```text
+true → false
+false → true
+```
+
+---
+
+### 📌 undefined
+
+Default value for non-existing variable.
+
+Behaves like FALSE.
+
+---
+
+### ✅ window.x = 1
+
+Stores:
+
+```text
+TRUE-like value
+```
+
+marker that exploit already executed.
+
+---
+
+### 🔄 this.src
+
+Changes iframe destination URL.
+
+Causes:
+
+- iframe reload
+- second request
+- exploit chain continuation
+
+---
+
+## 📸 Screenshot — lastViewedProduct Cookie Reflected into HTML Without Sanitization
+
+![lastViewedProduct-cookie-source](../images/lastViewedProduct-cookie-source.png)
+
+---
+
+## 🌐 Real-World Scenarios
+
+This technique is common in:
+
+- XSS exploit automation
+- CSRF redirect chains
+- iframe exploit staging
+- OAuth abuse chains
+- phishing redirect payloads
+- multi-step DOM attacks
+- silent browser navigation attacks
+
+---
+
+## 🔗 Attack Chains
+
+### 🍪 Cookie Poisoning Chain
+
+```text
+iframe loads malicious product URL
+        ↓
+cookie poisoned
+        ↓
+onload redirects iframe
+        ↓
+homepage reads poisoned cookie
+        ↓
+XSS executes
+```
+
+---
+
+### 🧠 Multi-Step DOM Attack
+
+```text
+stage 1 = setup
+stage 2 = trigger
+```
+
+window.x prevents stage repetition.
+
+---
+
+## 🎯 High-Value Endpoints
+
+Places where this logic often appears:
+
+- login redirects
+- account pages
+- OAuth flows
+- iframe widgets
+- ad systems
+- embedded dashboards
+- SSO portals
+- payment popups
+
+---
+
+## 🧠 Mental Model
+
+```text
+window.x = browser memory flag
+
+First load:
+    x does not exist
+    ↓
+    execute redirect
+    ↓
+    set x=1
+
+Second load:
+    x already exists
+    ↓
+    stop execution
+```
+
+---
+
+## 🛡️ Remediation
+
+Developers should:
+
+- avoid unsafe iframe scripting
+- validate dynamic redirects
+- avoid dangerous automatic navigation
+- sanitize attacker-controlled inputs
+- restrict DOM manipulation
+
+For exploit prevention:
+
+- use CSP
+- sandbox iframes
+- validate origins
+- avoid inline JavaScript
+
+---
+
+## 🔥 Final Easy Understanding
+
+The payload uses window.x as a temporary memory flag. First time the iframe loads, x does not exist, so the redirect happens. Then x becomes 1, which prevents future redirects and stops the iframe from entering an infinite reload loop.
