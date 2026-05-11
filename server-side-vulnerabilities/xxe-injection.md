@@ -1471,3 +1471,460 @@ Very severe.
 ## 🧠 One-Line Summary
 
 XXE SSRF abuses the XML parser to make the server access internal cloud metadata services and leak sensitive credentials.
+
+---
+
+# 🧠Lab-3 XInclude-Based XXE Injection
+
+---
+
+## 📝 Overview
+
+This lab demonstrates:
+
+XInclude-based XXE Injection
+
+Core concept:
+
+Attacker cannot inject full XML document,
+so classic XXE fails.
+
+But attacker can still abuse XInclude
+inside a single XML value.
+
+This is a very important real-world XXE bypass technique.
+
+---
+
+## 🌐 What Is The Topic?
+
+---
+
+### ⚠️ Problem Scenario
+
+Normally, classic XXE requires:
+
+DOCTYPE
+
+ENTITY
+
+Example:
+
+```xml
+<!DOCTYPE test [
+   <!ENTITY xxe SYSTEM "file:///etc/passwd">
+]>
+```
+
+But many modern applications:
+
+sanitize DOCTYPE
+
+remove ENTITY
+
+only allow partial XML injection
+
+Developers think XXE is fixed.
+
+But XML has another feature:
+
+```txt
+XInclude
+```
+
+which can still include external files.
+
+---
+
+## 📚 What Is XInclude?
+
+XInclude is an XML feature used to:
+
+include external content into XML
+
+Like:
+
+importing files
+
+merging XML documents
+
+including text into XML
+
+---
+
+## 🧠 Simple Mental Model
+
+```txt
+Classic XXE:
+Define external entity
+
+XInclude:
+Directly include external file
+```
+
+---
+
+## 🧬 XML Foundation Recap
+
+---
+
+### 🏷️ XML Namespace
+
+```xml
+xmlns:xi="http://www.w3.org/2001/XInclude"
+```
+
+Means:
+
+Enable XInclude functionality
+
+This is NOT:
+
+a fetched URL
+
+external HTTP request
+
+attack target
+
+It is simply:
+
+namespace identifier
+
+XML feature declaration
+
+---
+
+### 📌 XInclude Tag
+
+```xml
+<xi:include ...>
+```
+
+Means:
+
+Use XInclude feature
+
+---
+
+## ⚖️ Important Difference
+
+```txt
+Component          Purpose
+
+xmlns:xi           Enable XInclude feature
+href=              Actual target file/resource
+```
+
+---
+
+## 🧭 Lab Walkthrough
+
+---
+
+### 🔎 Step 1 — Open Product Page
+
+Visit any product.
+
+Click:
+
+```txt
+Check stock
+```
+
+---
+
+### 📥 Step 2 — Intercept Request
+
+Capture request in Burp.
+
+Original request looks similar to:
+
+```xml
+<stockCheck>
+   <productId>1</productId>
+   <storeId>1</storeId>
+</stockCheck>
+```
+
+---
+
+### 🧠 Step 3 — Understand The Limitation
+
+You control ONLY:
+
+```xml
+<productId>YOUR_INPUT</productId>
+```
+
+NOT full XML document.
+
+So you cannot properly inject:
+
+```xml
+<!DOCTYPE ...>
+```
+
+Therefore:
+
+Classic XXE is not possible.
+
+---
+
+### 💉 Step 4 — Inject XInclude Payload
+
+Replace productId value with:
+
+![XInclude Payload in Product ID](../images/xinclude-productid-payload.png)
+
+```xml
+<foo xmlns:xi="http://www.w3.org/2001/XInclude">
+   <xi:include parse="text" href="file:///etc/passwd"/>
+</foo>
+```
+
+---
+
+### 📤 Step 5 — Send Request
+
+Parser processes XML.
+
+It encounters:
+
+```xml
+<xi:include ...>
+```
+
+Parser interprets this as:
+
+```txt
+"Include external content here."
+```
+
+---
+
+### 📂 Step 6 — File Retrieval
+
+Parser reads:
+
+```xml
+href="file:///etc/passwd"
+```
+
+Then loads local Linux file:
+
+```txt
+/etc/passwd
+```
+
+---
+
+### ✅ Step 7 — Response Contains File
+
+The application response includes:
+
+contents of /etc/passwd
+
+Lab solved.
+
+---
+
+## 🔍 Payload Breakdown
+
+---
+
+### 📦 Full Payload
+
+```xml
+<foo xmlns:xi="http://www.w3.org/2001/XInclude">
+   <xi:include parse="text" href="file:///etc/passwd"/>
+</foo>
+```
+
+---
+
+### 📌 <foo>
+
+Simple wrapper/container tag.
+
+Can usually be any valid XML element.
+
+---
+
+### 🏷️ xmlns:xi="http://www.w3.org/2001/XInclude"
+
+Enables XInclude namespace support.
+
+Meaning:
+
+```txt
+"Parser, recognize xi:include tags."
+```
+
+NOT:
+
+downloaded content
+
+attack URL
+
+external request
+
+---
+
+### ⚙️ <xi:include>
+
+Triggers XInclude functionality.
+
+Meaning:
+
+```txt
+Include external content here.
+```
+
+---
+
+### 📝 parse="text"
+
+Treat included file as plain text.
+
+Without this:
+
+parser may expect valid XML structure
+
+---
+
+### 📂 href="file:///etc/passwd"
+
+Actual target resource.
+
+Meaning:
+
+Read local file:
+
+```txt
+/etc/passwd
+```
+
+---
+
+## ⚙️ Internal Server Processing
+
+```txt
+Parser sees xi:include
+        ↓
+Loads /etc/passwd
+        ↓
+Inserts file contents into XML
+        ↓
+Application response leaks file
+```
+
+---
+
+## 💥 Why This Works
+
+Because XInclude:
+
+does not require DOCTYPE
+
+does not require ENTITY
+
+works inside partial XML injection
+
+---
+
+## ⚖️ Important Difference vs Classic XXE
+
+```txt
+Classic XXE             XInclude XXE
+
+Uses DOCTYPE            Uses XInclude
+Uses ENTITY             Uses xi:include
+Needs full XML control  Partial control enough
+Often blocked           Often overlooked
+```
+
+---
+
+## 🌍 Real-World Scenarios
+
+XInclude attacks commonly appear in:
+
+SOAP services
+
+SAML systems
+
+XML APIs
+
+backend integrations
+
+enterprise applications
+
+mobile app XML parsers
+
+---
+
+## 🎯 High Value Targets
+
+```txt
+File                    Purpose
+
+/etc/passwd             User accounts
+/etc/shadow             Password hashes
+AWS credentials files   Cloud access
+SSH keys                Remote access
+Config files            Database secrets
+```
+
+---
+
+## 💣 Real-World Impact
+
+Successful XInclude XXE may lead to:
+
+local file disclosure
+
+credential theft
+
+cloud compromise
+
+SSRF
+
+lateral movement
+
+server compromise
+
+---
+
+## 🛡️ Remediation
+
+Secure XML parsing:
+
+disable XInclude support
+
+disable external entities
+
+avoid parsing user-controlled XML
+
+use hardened XML parsers
+
+validate XML schemas strictly
+
+---
+
+## 🧠 Important Mental Models
+
+```txt
+Classic XXE =
+Inject XML entity definitions
+
+XInclude XXE =
+Abuse XML include mechanism directly
+
+Partial XML injection can still become XXE.
+```
+
+---
+
+## 🧠 One-Line Summary
+
+XInclude attacks abuse XML include functionality to retrieve local files even when the attacker controls only part of an XML document.
