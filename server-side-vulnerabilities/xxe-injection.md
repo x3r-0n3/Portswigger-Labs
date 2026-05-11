@@ -1928,3 +1928,342 @@ Partial XML injection can still become XXE.
 ## 🧠 One-Line Summary
 
 XInclude attacks abuse XML include functionality to retrieve local files even when the attacker controls only part of an XML document.
+
+---
+
+# 🖼️Lab-4 XXE via File Upload (SVG + Apache Batik)
+
+---
+
+## 📝 Overview
+
+Previously:
+
+XXE was triggered via direct XML request injection
+
+Now new concept:
+
+👉 Attacker uploads a file  
+👉 That file secretly contains XML
+
+This creates:
+
+```txt
+hidden XXE attack surface via file upload
+```
+
+---
+
+## 🧠 What Is the Topic? (Full Theory)
+
+---
+
+### 🔹 1. Core Idea
+
+Some file formats are actually:
+
+👉 XML-based internally
+
+So when server processes uploaded file:
+
+XML parser runs behind the scenes
+
+If XML features are enabled:
+
+👉 XXE becomes possible
+
+---
+
+### 🔹 2. Key Mental Model
+
+```txt
+User uploads "image/document"
+        ↓
+Server internally parses XML
+        ↓
+XXE executes silently
+```
+
+---
+
+### 🔹 3. Why This Happens
+
+Developers assume:
+
+```txt
+“This is just an image upload system”
+```
+
+BUT:
+
+👉 many formats use XML internally
+
+So hidden attack surface appears.
+
+---
+
+### 🔹 4. XML-Based File Formats
+
+```txt
+Format     XML inside?
+
+SVG        Yes
+DOCX       Yes
+PPTX       Yes
+XLSX       Yes
+SOAP       Yes
+```
+
+---
+
+### 🔹 5. Why SVG is Dangerous
+
+SVG:
+
+```txt
+Scalable Vector Graphics
+```
+
+image format
+
+BUT fully XML-based
+
+So:
+
+👉 XML parser processes it
+
+---
+
+### 🔹 6. Apache Batik Role
+
+Java SVG processing library
+
+parses SVG XML
+
+supports entity expansion
+
+So:
+
+👉 becomes XXE execution engine
+
+---
+
+## 🧭 Lab Walkthrough (Step-by-Step)
+
+---
+
+### 📤 Step 1 — Upload Feature Exists
+
+Application allows:
+
+comment posting
+
+avatar upload
+
+---
+
+### 💉 Step 2 — Attacker Uploads SVG
+
+Instead of normal image:
+
+👉 attacker uploads malicious SVG file
+
+---
+
+### ⚙️ Step 3 — Server Processes File
+
+Backend uses:
+
+👉 Apache Batik
+
+It:
+
+parses XML
+
+processes SVG structure
+
+expands entities
+
+---
+
+### 📂 Step 4 — XXE Triggered
+
+```txt
+&xxe; → /etc/hostname content
+```
+
+---
+
+### 🖼️ Step 5 — File Stored & Rendered
+
+Server stores avatar:
+
+```txt
+/post/comment/avatars?filename=6.png
+```
+
+Then browser loads it.
+
+---
+
+### ✅ Step 6 — Result Appears
+
+Inside avatar/image:
+
+👉 /etc/hostname content appears
+
+![Hostname Appearing Inside Avatar UI](../images/svg-xxe-hostname-avatar.png)
+
+---
+
+### 🎯 Step 7 — Submit Solution
+
+Copy exact hostname and submit in lab UI.
+
+---
+
+## 💣 Final Payload
+
+```xml
+<?xml version="1.0" standalone="yes"?>
+<!DOCTYPE test [
+  <!ENTITY xxe SYSTEM "file:///etc/hostname">
+]>
+<svg width="128px" height="128px"
+     xmlns="http://www.w3.org/2000/svg">
+  <text font-size="16" x="0" y="16">&xxe;</text>
+</svg>
+```
+
+---
+
+## 🔍 Breaking the Payload
+
+---
+
+### 📌 1. XML Declaration
+
+```xml
+<?xml version="1.0"?>
+```
+
+→ defines XML format
+
+---
+
+### 📌 2. DOCTYPE Block
+
+```xml
+<!DOCTYPE test [ ... ]>
+```
+
+→ enables entity definition
+
+---
+
+### 📌 3. External Entity
+
+```xml
+<!ENTITY xxe SYSTEM "file:///etc/hostname">
+```
+
+→ reads server file
+
+---
+
+### 📌 4. Entity Usage
+
+```xml
+&xxe;
+```
+
+→ injects file content into SVG output
+
+---
+
+## 🌍 Real-World Scenarios
+
+---
+
+### 🧑‍💻 1. Avatar Upload Systems
+
+profile images
+
+user avatars
+
+---
+
+### 🛠️ 2. File Conversion Services
+
+SVG → PNG rendering
+
+image resizing services
+
+---
+
+### 📄 3. Document Upload Systems
+
+DOCX parsing
+
+PDF generation pipelines
+
+---
+
+### ☁️ 4. Cloud Services
+
+preview generation
+
+thumbnail creation APIs
+
+---
+
+## 🎯 High Value Endpoints
+
+```txt
+/post/comment
+/upload/avatar
+/api/avatar
+image processing backend (Batik, libxml, etc.)
+```
+
+---
+
+## 🛡️ Remediation
+
+---
+
+### 🔒 1. Disable XML External Entities
+
+disable DOCTYPE parsing
+
+disable entity expansion
+
+---
+
+### 🔒 2. Secure XML Parsers
+
+turn off external DTDs
+
+use hardened XML config
+
+---
+
+### 🔒 3. File Upload Hardening
+
+reject SVG if not needed
+
+convert SVG → safe PNG server-side
+
+---
+
+### 🔒 4. Input Validation
+
+sanitize uploaded XML-based files
+
+enforce strict parsing rules
+
+---
+
+## 🧠 One-Line Summary
+
+👉 “XXE via file upload happens when XML-based formats like SVG are parsed server-side and external entities are allowed to execute.”
